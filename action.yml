@@ -1,0 +1,61 @@
+name: 'Should Run Acceptance Stage'
+description: 'Determines if acceptance stage should run based on new Docker images or force run flag'
+author: 'Optivem'
+branding:
+  icon: 'check-circle'
+  color: 'green'
+inputs:
+  repo-owner:
+    description: 'Repository owner'
+    required: true
+  repo-name:
+    description: 'Repository name'
+    required: true
+  image-name:
+    description: 'Docker image name to check for updates'
+    required: true
+  workflow-name:
+    description: 'Name of the acceptance stage workflow'
+    required: true
+  force-run:
+    description: 'Force run even if no new images (bypasses image detection)'
+    required: false
+    default: 'false'
+outputs:
+  should-run:
+    description: 'Whether the acceptance stage should run (true/false)'
+    value: ${{ steps.check.outputs.should-run }}
+  reason:
+    description: 'Reason why acceptance stage should or should not run'
+    value: ${{ steps.check.outputs.reason }}
+  latest-commit:
+    description: 'Latest commit SHA'
+    value: ${{ steps.check.outputs.latest-commit }}
+  latest-image-id:
+    description: 'Latest image ID if new image is available'
+    value: ${{ steps.check.outputs.latest-image-id }}
+  latest-image-created-at:
+    description: 'Latest image creation timestamp'
+    value: ${{ steps.check.outputs.latest-image-created-at }}
+  new-images-count:
+    description: 'Number of new images found'
+    value: ${{ steps.check.outputs.new-images-count }}
+  error-message:
+    description: 'Error message if check failed'
+    value: ${{ steps.check.outputs.error-message }}
+runs:
+  using: 'composite'
+  steps:
+    - name: Check if acceptance stage should run
+      id: check
+      shell: pwsh
+      run: |
+        & "${{ github.action_path }}/action.ps1" `
+          -RepoOwner "${{ inputs.repo-owner }}" `
+          -RepoName "${{ inputs.repo-name }}" `
+          -ImageName "${{ inputs.image-name }}" `
+          -WorkflowName "${{ inputs.workflow-name }}" `
+          -ForceRun ([System.Convert]::ToBoolean("${{ inputs.force-run }}"))
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        GITHUB_SHA: ${{ github.sha }}
