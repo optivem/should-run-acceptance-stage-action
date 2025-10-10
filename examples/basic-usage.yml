@@ -14,12 +14,22 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      docker-inspect: ${{ steps.inspect.outputs.result }}
     steps:
       - uses: actions/checkout@v4
+      
       - name: Build and push Docker image
         run: |
           # Your build steps here
-          echo "Building Docker image..."
+          docker build -t myregistry/my-app:latest .
+          docker push myregistry/my-app:latest
+          
+      - name: Inspect Docker image
+        id: inspect
+        run: |
+          INSPECT_RESULT=$(docker inspect myregistry/my-app:latest)
+          echo "result=$INSPECT_RESULT" >> $GITHUB_OUTPUT
           
   check-acceptance:
     needs: build
@@ -34,7 +44,7 @@ jobs:
         with:
           repo-owner: ${{ github.repository_owner }}
           repo-name: ${{ github.event.repository.name }}
-          image-name: 'my-app'
+          inspect-data-result: '${{ needs.build.outputs.docker-inspect }}'
           workflow-name: 'acceptance.yml'
           
   acceptance-tests:

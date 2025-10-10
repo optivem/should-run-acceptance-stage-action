@@ -19,13 +19,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         
+      - name: Create test Docker inspect data
+        id: test-data
+        run: |
+          # Create a sample Docker inspect JSON with current timestamp
+          INSPECT_DATA='{
+            "Id": "sha256:797cc00f91cabe4c89617485426c7aa71ca46c3c8a87328a663c2287f8dbb4b5",
+            "RepoTags": ["test/image:latest"],
+            "Created": "'$(date -u +"%Y-%m-%dT%H:%M:%S.%6NZ")'",
+            "Config": { "Labels": null }
+          }'
+          echo "inspect-data=$INSPECT_DATA" >> $GITHUB_OUTPUT
+        
       - name: Test action with force-run enabled
         id: test-force
         uses: ./
         with:
           repo-owner: ${{ github.repository_owner }}
           repo-name: ${{ github.event.repository.name }}
-          image-name: 'test-image'
+          inspect-data-result: '${{ steps.test-data.outputs.inspect-data }}'
           workflow-name: 'test.yml'
           force-run: 'true'
           
@@ -43,24 +55,27 @@ jobs:
           fi
           echo "✅ Force run test passed"
           
-      - name: Test action with normal mode
+      - name: Test action with normal mode (new image)
         id: test-normal
         uses: ./
         with:
           repo-owner: ${{ github.repository_owner }}
           repo-name: ${{ github.event.repository.name }}
-          image-name: 'test-image'
+          inspect-data-result: '${{ steps.test-data.outputs.inspect-data }}'
           workflow-name: 'test.yml'
           force-run: 'false'
-        continue-on-error: true
           
       - name: Verify normal mode outputs
         run: |
           echo "Should run: ${{ steps.test-normal.outputs.should-run }}"
           echo "Reason: ${{ steps.test-normal.outputs.reason }}"
           echo "Error message: ${{ steps.test-normal.outputs.error-message }}"
-          # Normal mode will likely fail due to missing package, which is expected
-          echo "✅ Normal mode test completed (failure expected for test repo)"
+          # Since we're using a current timestamp, it should run (new image)
+          if [ "${{ steps.test-normal.outputs.should-run }}" == "true" ]; then
+            echo "✅ Normal mode test passed (new image detected)"
+          else
+            echo "⚠️ Normal mode returned false - this could be expected if no recent workflow runs"
+          fi
 
   test-different-os:
     strategy:
@@ -77,7 +92,7 @@ jobs:
         with:
           repo-owner: ${{ github.repository_owner }}
           repo-name: ${{ github.event.repository.name }}
-          image-name: 'test-image'
+          inspect-data-result: '{"Id": "sha256:test", "Created": "2025-10-10T14:34:00.820799895Z", "RepoTags": ["test:latest"]}'
           workflow-name: 'test.yml'
           force-run: 'true'
           

@@ -3,17 +3,18 @@
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/optivem/should-run-acceptance-stage-action)](https://github.com/optivem/should-run-acceptance-stage-action/releases)
 [![GitHub](https://img.shields.io/github/license/optivem/should-run-acceptance-stage-action)](LICENSE)
 
-A GitHub Action that determines whether an acceptance stage should run based on the availability of new Docker images in **GitHub Container Registry (GHCR)** or a force run flag. This action helps optimize CI/CD pipelines by only running acceptance tests when there are actual changes to test.
+A GitHub Action that determines whether an acceptance stage should run based on Docker image creation timestamps or a force run flag. This action accepts Docker inspect JSON data and compares the image creation time with the last successful workflow run, helping optimize CI/CD pipelines by only running acceptance tests when there are actual changes to test.
 
-> **Note**: This action is specifically designed for GitHub Container Registry. It will not work with other container registries like Docker Hub, ECR, or ACR.
+> **Note**: This action now works with any Docker image from any registry. Simply provide the output of `docker inspect <image>` as input.
 
 ## Features
 
-- 🔍 **Smart Detection**: Automatically detects new Docker images since the last successful acceptance run
+- 🔍 **Smart Detection**: Compares Docker image creation timestamp with last successful acceptance run
 - 🚀 **Force Run Option**: Bypass image detection and force acceptance stage to run
 - 📊 **Detailed Outputs**: Provides comprehensive information about the decision and discovered images
 - ⚡ **Performance Optimized**: Reduces unnecessary acceptance test runs
-- 🛡️ **Error Handling**: Graceful handling of edge cases and API failures
+- 🛡️ **Error Handling**: Graceful handling of edge cases and parsing failures
+- 🐳 **Registry Agnostic**: Works with any Docker registry (Docker Hub, GHCR, ECR, ACR, etc.)
 
 ## Usage
 
@@ -26,11 +27,23 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      docker-inspect: ${{ steps.inspect.outputs.result }}
     steps:
       - uses: actions/checkout@v4
       
-      # Your build steps here...
+      # Your build and push steps here...
+      - name: Build and push Docker image
+        run: |
+          docker build -t myregistry/myapp:latest .
+          docker push myregistry/myapp:latest
       
+      - name: Inspect Docker image
+        id: inspect
+        run: |
+          INSPECT_RESULT=$(docker inspect myregistry/myapp:latest)
+          echo "result=$INSPECT_RESULT" >> $GITHUB_OUTPUT
+          
   check-acceptance:
     needs: build
     runs-on: ubuntu-latest
@@ -44,7 +57,7 @@ jobs:
         with:
           repo-owner: 'your-org'
           repo-name: 'your-repo'
-          image-name: 'your-app'
+          inspect-data-result: '${{ needs.build.outputs.docker-inspect }}'
           workflow-name: 'acceptance-tests.yml'
           
   acceptance-tests:
@@ -91,7 +104,7 @@ jobs:
 |-------|-------------|----------|---------|
 | `repo-owner` | Repository owner (organization or username) | ✅ | - |
 | `repo-name` | Repository name | ✅ | - |
-| `image-name` | Docker image name to check for updates | ✅ | - |
+| `inspect-data-result` | Docker inspect JSON result containing image metadata | ✅ | - |
 | `workflow-name` | Name of the acceptance stage workflow file | ✅ | - |
 | `force-run` | Force run even if no new images (bypasses image detection) | ❌ | `false` |
 
@@ -110,22 +123,29 @@ jobs:
 ## How It Works
 
 1. **Last Run Detection**: Queries the GitHub API to find the timestamp of the last successful acceptance workflow run
-2. **Image Discovery**: Searches for Docker images in GitHub Container Registry newer than the last successful run
+2. **Image Analysis**: Parses the provided Docker inspect JSON data to extract the image creation timestamp
 3. **Decision Logic**: 
    - If `force-run` is `true`: Always runs acceptance stage
-   - If new images found: Runs acceptance stage
-   - If package not found: Runs acceptance stage (safe default)
-   - If no new images: Skips acceptance stage
+   - If image creation time is newer than last successful run: Runs acceptance stage
+   - If image creation time is older than last successful run: Skips acceptance stage
 4. **Output Generation**: Provides detailed information about the decision for transparency
 
-## Supported Package Formats
+## Supported Registries
 
-This action works with GitHub Container Registry packages in the format:
-- `repo-name/image-name` (e.g., `my-app/api`, `my-service/worker`)
+This action works with **any Docker registry** including:
+- **Docker Hub** (`docker.io`)
+- **GitHub Container Registry** (`ghcr.io`)
+- **Amazon ECR** (`*.dkr.ecr.*.amazonaws.com`)
+- **Azure Container Registry** (`*.azurecr.io`)
+- **Google Container Registry** (`gcr.io`, `*.gcr.io`)
+- **Private registries** and **self-hosted registries**
+
+Simply provide the output of `docker inspect <image>` regardless of where the image is hosted.
 
 ## Requirements
 
 - **GitHub Token**: The action requires `GITHUB_TOKEN` to access GitHub APIs (automatically provided)
+- **Docker Inspect Data**: Provide JSON output from `docker inspect <image>` command
 - **GitHub CLI**: Uses `gh` command (pre-installed on GitHub runners)
 - **Permissions**: Requires `packages: read` permission to access container registry
 

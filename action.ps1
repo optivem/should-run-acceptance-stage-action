@@ -4,7 +4,7 @@ param(
     [Parameter(Mandatory=$true)]
     [string]$RepoName,
     [Parameter(Mandatory=$true)]
-    [string]$ImageName,
+    [string]$InspectDataResult,
     [Parameter(Mandatory=$true)]
     [string]$WorkflowName,
     [Parameter(Mandatory=$false)]
@@ -13,7 +13,6 @@ param(
 
 Write-Host "🔍 Checking if acceptance stage should run..."
 Write-Host "Repository: $RepoOwner/$RepoName"
-Write-Host "Image: $ImageName"
 Write-Host "Acceptance Workflow: $WorkflowName"
 Write-Host "Force Run: $ForceRun"
 
@@ -39,69 +38,59 @@ if ($lastWorkflowRun.Count -gt 0) {
 Write-Host "Checking for images newer than: $LastCheckedTimestamp"
 
 try {
-    # The package we're looking for: repo-name/image-name format
-    $targetPackageName = "$RepoName/$ImageName"
-    Write-Host "Looking for package: $targetPackageName"
-    
-    # Try to access the specific package directly using organization endpoint
-    # Package names with slashes need URL encoding: / becomes %2F
-    $encodedPackageName = $targetPackageName -replace "/", "%2F"
+    # Parse the Docker inspect JSON result
+    Write-Host "Parsing Docker inspect data..."
     
     try {
-        $packageJson = gh api "/orgs/$RepoOwner/packages/container/$encodedPackageName"
-        $package = $packageJson | ConvertFrom-Json
-        Write-Host "✅ Found package: $($package.name)"
-        Write-Host "Package repository: $($package.repository.name)"
-        Write-Host "Package versions: $($package.version_count)"
+        $inspectData = $InspectDataResult | ConvertFrom-Json
         
-        # Get versions for this package
-        $versionsJson = gh api "/orgs/$RepoOwner/packages/container/$encodedPackageName/versions"
-        $versions = $versionsJson | ConvertFrom-Json
-        
-        $lastChecked = [DateTime]::Parse($LastCheckedTimestamp)
-        
-        $newImages = $versions | Where-Object { 
-            [DateTime]::Parse($_.created_at) -gt $lastChecked 
+        if (-not $inspectData.Created) {
+            throw "Docker inspect data does not contain 'Created' field"
         }
         
-        if ($newImages.Count -gt 0) {
-            $latestImage = $newImages[0]
-            Write-Host "✅ Found $($newImages.Count) new image(s)!"
-            Write-Host "Latest image created: $($latestImage.created_at)"
-            Write-Host "Latest image name: $($latestImage.name)"
+        $imageCreatedTimestamp = $inspectData.Created
+        Write-Host "Image created at: $imageCreatedTimestamp"
+        
+        # Extract image information for logging
+        $imageId = if ($inspectData.Id) { $inspectData.Id.Substring(0, 12) } else { "unknown" }
+        $repoTags = if ($inspectData.RepoTags) { $inspectData.RepoTags -join ", " } else { "none" }
+        
+        Write-Host "Image ID: $imageId"
+        Write-Host "Repo Tags: $repoTags"
+        
+        # Compare timestamps
+        $lastChecked = [DateTime]::Parse($LastCheckedTimestamp)
+        $imageCreated = [DateTime]::Parse($imageCreatedTimestamp)
+        
+        if ($imageCreated -gt $lastChecked) {
+            Write-Host "✅ Image is newer than last acceptance run!"
+            Write-Host "Image created: $imageCreatedTimestamp"
+            Write-Host "Last checked: $LastCheckedTimestamp"
             
             # Set outputs for acceptance stage to run
             "should-run=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
             "reason=new-image-available" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
             "latest-commit=$env:GITHUB_SHA" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-            "latest-image-id=$($latestImage.id)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-            "latest-image-created-at=$($latestImage.created_at)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-            "new-images-count=$($newImages.Count)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            "latest-image-id=$imageId" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            "latest-image-created-at=$imageCreatedTimestamp" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            "new-images-count=1" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
         } else {
-            Write-Host "❌ No new images found since last acceptance run"
+            Write-Host "❌ Image is not newer than last acceptance run"
+            Write-Host "Image created: $imageCreatedTimestamp"
+            Write-Host "Last checked: $LastCheckedTimestamp"
             "should-run=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
             "reason=no-new-images" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
         }
         
     } catch {
-        throw "Could not access package '$targetPackageName': $($_.Exception.Message)"
+        throw "Could not parse Docker inspect data: $($_.Exception.Message)"
     }
 } catch {
     $errorMessage = $_.Exception.Message
-    Write-Host "⚠️ Could not check container registry: $errorMessage"
-    Write-Host "Command: gh api /orgs/$RepoOwner/packages/container/$encodedPackageName"
+    Write-Host "⚠️ Could not process Docker inspect data: $errorMessage"
     
-    # Handle 404 specifically - package might not exist yet
-    if ($errorMessage -like "*404*") {
-        Write-Host "📦 Package '$targetPackageName' not found - this might be the first time checking"
-        Write-Host "Defaulting to run acceptance stage to be safe"
-        "should-run=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-        "reason=package-not-found-run-safe" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-        "latest-commit=$env:GITHUB_SHA" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-    } else {
-        Write-Host "❌ API error - failing to prevent silent issues"
-        "error-message=$errorMessage" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-    }
-
+    Write-Host "❌ Processing error - failing to prevent silent issues"
+    "error-message=$errorMessage" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+    
     exit 1
 }

@@ -1,5 +1,5 @@
 name: 'Should Run Acceptance Stage'
-description: 'Determines if acceptance stage should run based on new Docker images in GitHub Container Registry or force run flag. Helps optimize CI/CD pipelines by only running acceptance tests when there are actual changes to test.'
+description: 'Determines if acceptance stage should run based on Docker image creation timestamp or force run flag. Accepts Docker inspect JSON data to compare image creation time with last successful workflow run.'
 author: 'Optivem'
 branding:
   icon: 'check-circle'
@@ -11,8 +11,8 @@ inputs:
   repo-name:
     description: 'Repository name'
     required: true
-  image-name:
-    description: 'Docker image name to check for updates'
+  inspect-data-result:
+    description: 'Docker inspect JSON result containing image metadata'
     required: true
   workflow-name:
     description: 'Name of the acceptance stage workflow'
@@ -53,7 +53,7 @@ runs:
         & "${{ github.action_path }}/action.ps1" `
           -RepoOwner "${{ inputs.repo-owner }}" `
           -RepoName "${{ inputs.repo-name }}" `
-          -ImageName "${{ inputs.image-name }}" `
+          -InspectDataResult "${{ inputs.inspect-data-result }}" `
           -WorkflowName "${{ inputs.workflow-name }}" `
           -ForceRun ([System.Convert]::ToBoolean("${{ inputs.force-run }}"))
       env:
