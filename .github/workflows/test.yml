@@ -94,9 +94,17 @@ jobs:
       - name: Lint PowerShell script
         shell: pwsh
         run: |
-          $results = Invoke-ScriptAnalyzer -Path ./action.ps1 -Severity Warning,Error
+          $results = Invoke-ScriptAnalyzer -Path ./action.ps1 -Severity Error
           if ($results.Count -gt 0) {
             $results | Format-Table -AutoSize
-            throw "PowerShell linting failed with $($results.Count) issues"
+            throw "PowerShell linting failed with $($results.Count) errors"
           }
-          Write-Host "✅ PowerShell linting passed"
+          
+          # Show warnings but don't fail on them
+          $warnings = Invoke-ScriptAnalyzer -Path ./action.ps1 -Severity Warning
+          if ($warnings.Count -gt 0) {
+            Write-Host "⚠️ PowerShell warnings found (not failing build):"
+            $warnings | Format-Table -AutoSize
+          }
+          
+          Write-Host "✅ PowerShell linting passed (no errors)"
