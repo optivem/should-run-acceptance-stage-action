@@ -126,9 +126,9 @@ jobs:
 
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
+| `latest-image-inspect-result` | Docker inspect JSON result containing image metadata | ✅ | - |
 | `acceptance-stage-repo-owner` | Repository owner (organization or username) | ❌ | `${{ github.repository_owner }}` |
 | `acceptance-stage-repo-name` | Repository name | ❌ | `${{ github.event.repository.name }}` |
-| `latest-image-inspect-result` | Docker inspect JSON result containing image metadata | ✅ | - |
 | `acceptance-stage-workflow-name` | Name of the acceptance stage workflow file | ❌ | `acceptance-stage` |
 | `force-run` | Force run even if no new images (bypasses image detection) | ❌ | `false` |
 

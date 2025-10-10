@@ -5,6 +5,9 @@ branding:
   icon: 'check-circle'
   color: 'green'
 inputs:
+  latest-image-inspect-result:
+    description: 'Docker inspect JSON result containing image metadata'
+    required: true
   acceptance-stage-repo-owner:
     description: 'Repository owner (organization or username)'
     required: false
@@ -13,9 +16,6 @@ inputs:
     description: 'Repository name'
     required: false
     default: ${{ github.event.repository.name }}
-  latest-image-inspect-result:
-    description: 'Docker inspect JSON result containing image metadata'
-    required: true
   acceptance-stage-workflow-name:
     description: 'Name of the acceptance stage workflow'
     required: false
