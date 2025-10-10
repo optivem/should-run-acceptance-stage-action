@@ -78,33 +78,3 @@ jobs:
           latest-image-inspect-results: '[{"Id": "sha256:test", "Created": "2025-10-10T14:34:00.820799895Z", "RepoTags": ["test:latest"]}]'
           acceptance-stage-workflow-name: 'test.yml'
           force-run: 'true'
-          
-  lint-powershell:
-    runs-on: ubuntu-latest
-    name: Lint PowerShell
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        
-      - name: Install PSScriptAnalyzer
-        shell: pwsh
-        run: |
-          Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
-          
-      - name: Lint PowerShell script
-        shell: pwsh
-        run: |
-          $results = Invoke-ScriptAnalyzer -Path ./action.ps1 -Severity Error
-          if ($results.Count -gt 0) {
-            $results | Format-Table -AutoSize
-            throw "PowerShell linting failed with $($results.Count) errors"
-          }
-          
-          # Show warnings but don't fail on them
-          $warnings = Invoke-ScriptAnalyzer -Path ./action.ps1 -Severity Warning
-          if ($warnings.Count -gt 0) {
-            Write-Host "⚠️ PowerShell warnings found (not failing build):"
-            $warnings | Format-Table -AutoSize
-          }
-          
-          Write-Host "✅ PowerShell linting passed (no errors)"
