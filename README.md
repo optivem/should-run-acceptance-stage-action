@@ -334,15 +334,34 @@ jobs:
 
 ### Common Issues
 
-1. **Package Not Found (404)**
+1. **"A positional parameter cannot be found" Error**
+   - **Cause**: Input data is not in valid JSON format
+   - **Solution**: Ensure you're passing the raw JSON output from `docker inspect`:
+   ```bash
+   # ✅ Correct: Pass docker inspect JSON directly
+   INSPECT_RESULT=$(docker inspect your-image:tag)
+   echo "result=$INSPECT_RESULT" >> $GITHUB_OUTPUT
+   
+   # ❌ Wrong: Don't pass formatted strings
+   echo "result=Id:sha256:...,Created:..." >> $GITHUB_OUTPUT
+   ```
+
+2. **"Could not parse Docker inspect data" Error**
+   - **Cause**: Missing required fields (like `Created`) or malformed JSON
+   - **Solution**: Verify your Docker inspect output contains all required fields:
+   ```bash
+   docker inspect your-image:tag | jq '.[0] | {Id, Created, RepoTags}'
+   ```
+
+3. **Package Not Found (404)**
    - The action will default to running acceptance stage for safety
    - Ensure the package name format is correct: `repo-name/image-name`
 
-2. **Permission Denied**
+4. **Permission Denied**
    - Verify `packages: read` permission is granted
    - Check if the repository has container packages published
 
-3. **API Rate Limiting**
+5. **API Rate Limiting**
    - The action uses authenticated requests which have higher rate limits
    - Consider adding delays between workflow runs if hitting limits
 
