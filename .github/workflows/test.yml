@@ -35,8 +35,6 @@ jobs:
         id: test-force
         uses: ./
         with:
-          acceptance-stage-repo-owner: ${{ github.repository_owner }}
-          acceptance-stage-repo-name: ${{ github.event.repository.name }}
           latest-image-inspect-result: '${{ steps.test-data.outputs.inspect-data }}'
           acceptance-stage-workflow-name: 'test.yml'
           force-run: 'true'
@@ -59,8 +57,6 @@ jobs:
         id: test-normal
         uses: ./
         with:
-          acceptance-stage-repo-owner: ${{ github.repository_owner }}
-          acceptance-stage-repo-name: ${{ github.event.repository.name }}
           latest-image-inspect-result: '${{ steps.test-data.outputs.inspect-data }}'
           acceptance-stage-workflow-name: 'test.yml'
           force-run: 'false'
@@ -90,8 +86,6 @@ jobs:
       - name: Test action on ${{ matrix.os }}
         uses: ./
         with:
-          acceptance-stage-repo-owner: ${{ github.repository_owner }}
-          acceptance-stage-repo-name: ${{ github.event.repository.name }}
           latest-image-inspect-result: '{"Id": "sha256:test", "Created": "2025-10-10T14:34:00.820799895Z", "RepoTags": ["test:latest"]}'
           acceptance-stage-workflow-name: 'test.yml'
           force-run: 'true'

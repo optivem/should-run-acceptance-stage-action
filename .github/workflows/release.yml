@@ -28,31 +28,29 @@ jobs:
           echo "## What's Changed in ${{ steps.tag.outputs.tag }}" >> $GITHUB_OUTPUT
           echo "" >> $GITHUB_OUTPUT
           echo "### Features" >> $GITHUB_OUTPUT
-          echo "- Smart detection of new Docker images in GitHub Container Registry" >> $GITHUB_OUTPUT
+          echo "- Registry-agnostic Docker image timestamp comparison" >> $GITHUB_OUTPUT
           echo "- Force run option to bypass image detection" >> $GITHUB_OUTPUT
           echo "- Comprehensive outputs for decision transparency" >> $GITHUB_OUTPUT
           echo "- Graceful error handling for edge cases" >> $GITHUB_OUTPUT
+          echo "- Works with any Docker registry (Docker Hub, GHCR, ECR, ACR, etc.)" >> $GITHUB_OUTPUT
           echo "" >> $GITHUB_OUTPUT
           echo "### Usage" >> $GITHUB_OUTPUT
           echo '```yaml' >> $GITHUB_OUTPUT
           echo "- uses: optivem/should-run-acceptance-stage-action@${{ steps.tag.outputs.tag }}" >> $GITHUB_OUTPUT
           echo "  with:" >> $GITHUB_OUTPUT
-          echo "    repo-owner: 'your-org'" >> $GITHUB_OUTPUT
-          echo "    repo-name: 'your-repo'" >> $GITHUB_OUTPUT
-          echo "    image-name: 'your-app'" >> $GITHUB_OUTPUT
-          echo "    workflow-name: 'acceptance.yml'" >> $GITHUB_OUTPUT
+          echo "    latest-image-inspect-result: '\${{ steps.inspect.outputs.result }}'" >> $GITHUB_OUTPUT
+          echo "    # Optional parameters with defaults:" >> $GITHUB_OUTPUT
+          echo "    # acceptance-stage-workflow-name: 'acceptance-stage'" >> $GITHUB_OUTPUT
           echo '```' >> $GITHUB_OUTPUT
           echo "" >> $GITHUB_OUTPUT
           echo "**Full Changelog**: https://github.com/optivem/should-run-acceptance-stage-action/commits/${{ steps.tag.outputs.tag }}" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
           
       - name: Create GitHub release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
-          release_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
           body: ${{ steps.notes.outputs.notes }}
           draft: false
           prerelease: false
