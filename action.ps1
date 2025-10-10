@@ -47,25 +47,26 @@ try {
             throw "InspectDataResults parameter is empty or null"
         }
         
-        # Check if input looks like JSON
+        # Check if input looks like JSON array (must start with [ and end with ])
         $trimmedInput = $InspectDataResults.Trim()
-        if (-not ($trimmedInput.StartsWith('[') -and $trimmedInput.EndsWith(']')) -and 
-            -not ($trimmedInput.StartsWith('{') -and $trimmedInput.EndsWith('}'))) {
+        if (-not ($trimmedInput.StartsWith('[') -and $trimmedInput.EndsWith(']'))) {
             Write-Host "❌ Invalid input format detected!"
             Write-Host "Expected: JSON array format like: [{'Id': 'sha256:...', 'Created': '2025-01-01T...', ...}]"
             Write-Host "Received: $($InspectDataResults.Substring(0, [Math]::Min(100, $InspectDataResults.Length)))..."
             Write-Host ""
-            Write-Host "💡 To fix this, ensure you're passing the raw JSON output from 'docker inspect' command:"
-            Write-Host "   INSPECT_RESULT=`$(docker inspect your-image:tag)"
-            Write-Host "   - For single image: Pass `$INSPECT_RESULT directly (it's already an array)"
+            Write-Host "💡 To fix this, ensure you're passing a JSON array:"
+            Write-Host "   INSPECT_RESULT=`$(docker inspect your-image:tag)  # Returns array by default"
+            Write-Host "   - For single image: Pass `$INSPECT_RESULT directly"
             Write-Host "   - For multiple images: Combine like: `"[`$IMAGE1_JSON, `$IMAGE2_JSON]`""
-            throw "Input is not in valid JSON format. Expected JSON array starting with '[' or single object starting with '{'"
+            Write-Host "   - Single object format {..} is NOT supported - wrap in array: [{...}]"
+            throw "Input must be a JSON array starting with '[' and ending with ']'"
         }
         
         # Parse as JSON array
         $inspectDataArray = $InspectDataResults | ConvertFrom-Json
         
-        # Ensure it's an array
+        # PowerShell sometimes doesn't treat single-element arrays as arrays
+        # Force it to be an array if it's not already
         if ($inspectDataArray -isnot [Array]) {
             $inspectDataArray = @($inspectDataArray)
         }

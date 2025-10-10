@@ -21,9 +21,9 @@ A GitHub Action that determines whether an acceptance stage should run based on 
 
 This action requires Docker inspect JSON data. The `latest-image-inspect-results` input must be:
 
-- **Valid JSON**: Either a single object `{...}` or an array `[{...}, {...}]`
+- **Valid JSON Array**: Must be an array format `[{...}, {...}]` (single objects `{...}` are not accepted)
 - **Contains `Created` field**: Each inspect result must have a `Created` timestamp field
-- **Raw docker inspect output**: Use the direct output from `docker inspect` command
+- **Raw docker inspect output**: Use the direct output from `docker inspect` command (which returns arrays by default)
 
 ### ✅ Correct Examples:
 
@@ -44,6 +44,9 @@ echo "result=$COMBINED" >> $GITHUB_OUTPUT
 ```bash
 # DON'T: Pass non-JSON format
 echo "result=Id:sha256:...,Created:2025-01-01T..." >> $GITHUB_OUTPUT
+
+# DON'T: Pass single object format
+echo "result={\"Id\": \"sha256:...\", \"Created\": \"...\"}" >> $GITHUB_OUTPUT
 
 # DON'T: Pass empty or null values  
 echo "result=" >> $GITHUB_OUTPUT
