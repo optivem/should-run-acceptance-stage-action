@@ -55,9 +55,33 @@ jobs:
         id: check
         uses: optivem/should-run-acceptance-stage-action@v1
         with:
+          latest-image-inspect-result: '${{ needs.build.outputs.docker-inspect }}'
+          # All other parameters use defaults:
+          # acceptance-stage-repo-owner: (current repo owner)
+          # acceptance-stage-repo-name: (current repo name)  
+          # acceptance-stage-workflow-name: 'acceptance-stage'
+          
+  acceptance-tests:
+    needs: check-acceptance
+    if: needs.check-acceptance.outputs.should-run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run acceptance tests
+        run: |
+          echo "Running acceptance tests because: ${{ needs.check-acceptance.outputs.reason }}"
+          # Your acceptance test steps here...
+```
+
+### With Custom Parameters
+
+```yaml
+      - name: Check if acceptance should run
+        id: check
+        uses: optivem/should-run-acceptance-stage-action@v1
+        with:
           acceptance-stage-repo-owner: 'your-org'
           acceptance-stage-repo-name: 'your-repo'
-          inspect-data-result: '${{ needs.build.outputs.docker-inspect }}'
+          latest-image-inspect-result: '${{ needs.build.outputs.docker-inspect }}'
           acceptance-stage-workflow-name: 'acceptance-tests.yml'
           
   acceptance-tests:
@@ -102,10 +126,10 @@ jobs:
 
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
-| `acceptance-stage-repo-owner` | Repository owner (organization or username) | ✅ | - |
-| `acceptance-stage-repo-name` | Repository name | ✅ | - |
-| `inspect-data-result` | Docker inspect JSON result containing image metadata | ✅ | - |
-| `acceptance-stage-workflow-name` | Name of the acceptance stage workflow file | ✅ | - |
+| `acceptance-stage-repo-owner` | Repository owner (organization or username) | ❌ | Current repository owner |
+| `acceptance-stage-repo-name` | Repository name | ❌ | Current repository name |
+| `latest-image-inspect-result` | Docker inspect JSON result containing image metadata | ✅ | - |
+| `acceptance-stage-workflow-name` | Name of the acceptance stage workflow file | ❌ | `acceptance-stage` |
 | `force-run` | Force run even if no new images (bypasses image detection) | ❌ | `false` |
 
 ## Outputs

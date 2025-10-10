@@ -7,16 +7,19 @@ branding:
 inputs:
   acceptance-stage-repo-owner:
     description: 'Repository owner (organization or username)'
-    required: true
+    required: false
+    default: ''
   acceptance-stage-repo-name:
     description: 'Repository name'
-    required: true
-  inspect-data-result:
+    required: false
+    default: ''
+  latest-image-inspect-result:
     description: 'Docker inspect JSON result containing image metadata'
     required: true
   acceptance-stage-workflow-name:
     description: 'Name of the acceptance stage workflow'
-    required: true
+    required: false
+    default: 'acceptance-stage'
   force-run:
     description: 'Force run even if no new images (bypasses image detection)'
     required: false
@@ -51,9 +54,9 @@ runs:
       shell: pwsh
       run: |
         & "${{ github.action_path }}/action.ps1" `
-          -RepoOwner "${{ inputs.acceptance-stage-repo-owner }}" `
-          -RepoName "${{ inputs.acceptance-stage-repo-name }}" `
-          -InspectDataResult "${{ inputs.inspect-data-result }}" `
+          -RepoOwner "${{ inputs.acceptance-stage-repo-owner || github.repository_owner }}" `
+          -RepoName "${{ inputs.acceptance-stage-repo-name || github.event.repository.name }}" `
+          -InspectDataResult "${{ inputs.latest-image-inspect-result }}" `
           -WorkflowName "${{ inputs.acceptance-stage-workflow-name }}" `
           -ForceRun ([System.Convert]::ToBoolean("${{ inputs.force-run }}"))
       env:

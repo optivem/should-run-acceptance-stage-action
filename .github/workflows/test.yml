@@ -37,7 +37,7 @@ jobs:
         with:
           acceptance-stage-repo-owner: ${{ github.repository_owner }}
           acceptance-stage-repo-name: ${{ github.event.repository.name }}
-          inspect-data-result: '${{ steps.test-data.outputs.inspect-data }}'
+          latest-image-inspect-result: '${{ steps.test-data.outputs.inspect-data }}'
           acceptance-stage-workflow-name: 'test.yml'
           force-run: 'true'
           
@@ -61,7 +61,7 @@ jobs:
         with:
           acceptance-stage-repo-owner: ${{ github.repository_owner }}
           acceptance-stage-repo-name: ${{ github.event.repository.name }}
-          inspect-data-result: '${{ steps.test-data.outputs.inspect-data }}'
+          latest-image-inspect-result: '${{ steps.test-data.outputs.inspect-data }}'
           acceptance-stage-workflow-name: 'test.yml'
           force-run: 'false'
           
@@ -92,7 +92,7 @@ jobs:
         with:
           acceptance-stage-repo-owner: ${{ github.repository_owner }}
           acceptance-stage-repo-name: ${{ github.event.repository.name }}
-          inspect-data-result: '{"Id": "sha256:test", "Created": "2025-10-10T14:34:00.820799895Z", "RepoTags": ["test:latest"]}'
+          latest-image-inspect-result: '{"Id": "sha256:test", "Created": "2025-10-10T14:34:00.820799895Z", "RepoTags": ["test:latest"]}'
           acceptance-stage-workflow-name: 'test.yml'
           force-run: 'true'
           

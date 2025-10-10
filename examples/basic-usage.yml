@@ -44,7 +44,7 @@ jobs:
         with:
           acceptance-stage-repo-owner: ${{ github.repository_owner }}
           acceptance-stage-repo-name: ${{ github.event.repository.name }}
-          inspect-data-result: '${{ needs.build.outputs.docker-inspect }}'
+          latest-image-inspect-result: '${{ needs.build.outputs.docker-inspect }}'
           acceptance-stage-workflow-name: 'acceptance.yml'
           
   acceptance-tests:
