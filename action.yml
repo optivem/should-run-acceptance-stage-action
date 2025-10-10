@@ -1,5 +1,5 @@
 name: 'Should Run Acceptance Stage'
-description: 'Determines if acceptance stage should run based on new Docker images or force run flag'
+description: 'Determines if acceptance stage should run based on new Docker images in GitHub Container Registry or force run flag. Helps optimize CI/CD pipelines by only running acceptance tests when there are actual changes to test.'
 author: 'Optivem'
 branding:
   icon: 'check-circle'

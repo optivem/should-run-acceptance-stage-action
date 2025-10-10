@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  packages: read
+  actions: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Get tag
+        id: tag
+        run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        
+      - name: Create release notes
+        id: notes
+        run: |
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "## What's Changed in ${{ steps.tag.outputs.tag }}" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "### Features" >> $GITHUB_OUTPUT
+          echo "- Smart detection of new Docker images in GitHub Container Registry" >> $GITHUB_OUTPUT
+          echo "- Force run option to bypass image detection" >> $GITHUB_OUTPUT
+          echo "- Comprehensive outputs for decision transparency" >> $GITHUB_OUTPUT
+          echo "- Graceful error handling for edge cases" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "### Usage" >> $GITHUB_OUTPUT
+          echo '```yaml' >> $GITHUB_OUTPUT
+          echo "- uses: optivem/should-run-acceptance-stage-action@${{ steps.tag.outputs.tag }}" >> $GITHUB_OUTPUT
+          echo "  with:" >> $GITHUB_OUTPUT
+          echo "    repo-owner: 'your-org'" >> $GITHUB_OUTPUT
+          echo "    repo-name: 'your-repo'" >> $GITHUB_OUTPUT
+          echo "    image-name: 'your-app'" >> $GITHUB_OUTPUT
+          echo "    workflow-name: 'acceptance.yml'" >> $GITHUB_OUTPUT
+          echo '```' >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "**Full Changelog**: https://github.com/optivem/should-run-acceptance-stage-action/commits/${{ steps.tag.outputs.tag }}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+      - name: Create GitHub release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          release_name: ${{ steps.tag.outputs.tag }}
+          body: ${{ steps.notes.outputs.notes }}
+          draft: false
+          prerelease: false
+          
+      - name: Update major version tag
+        run: |
+          TAG=${{ steps.tag.outputs.tag }}
+          MAJOR_TAG=$(echo $TAG | cut -d. -f1)
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git tag -fa $MAJOR_TAG -m "Update $MAJOR_TAG to $TAG"
+          git push origin $MAJOR_TAG --force

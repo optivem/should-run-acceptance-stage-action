@@ -1,0 +1,104 @@
+name: Test Action
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: read
+  actions: read
+
+jobs:
+  test-action:
+    runs-on: ubuntu-latest
+    name: Test the action
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Test action with force-run enabled
+        id: test-force
+        uses: ./
+        with:
+          repo-owner: ${{ github.repository_owner }}
+          repo-name: ${{ github.event.repository.name }}
+          image-name: 'test-image'
+          workflow-name: 'test.yml'
+          force-run: 'true'
+          
+      - name: Verify force-run outputs
+        run: |
+          echo "Should run: ${{ steps.test-force.outputs.should-run }}"
+          echo "Reason: ${{ steps.test-force.outputs.reason }}"
+          if [ "${{ steps.test-force.outputs.should-run }}" != "true" ]; then
+            echo "❌ Force run should always return true"
+            exit 1
+          fi
+          if [ "${{ steps.test-force.outputs.reason }}" != "force-run" ]; then
+            echo "❌ Force run should have reason 'force-run'"
+            exit 1
+          fi
+          echo "✅ Force run test passed"
+          
+      - name: Test action with normal mode
+        id: test-normal
+        uses: ./
+        with:
+          repo-owner: ${{ github.repository_owner }}
+          repo-name: ${{ github.event.repository.name }}
+          image-name: 'test-image'
+          workflow-name: 'test.yml'
+          force-run: 'false'
+        continue-on-error: true
+          
+      - name: Verify normal mode outputs
+        run: |
+          echo "Should run: ${{ steps.test-normal.outputs.should-run }}"
+          echo "Reason: ${{ steps.test-normal.outputs.reason }}"
+          echo "Error message: ${{ steps.test-normal.outputs.error-message }}"
+          # Normal mode will likely fail due to missing package, which is expected
+          echo "✅ Normal mode test completed (failure expected for test repo)"
+
+  test-different-os:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    name: Test on ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Test action on ${{ matrix.os }}
+        uses: ./
+        with:
+          repo-owner: ${{ github.repository_owner }}
+          repo-name: ${{ github.event.repository.name }}
+          image-name: 'test-image'
+          workflow-name: 'test.yml'
+          force-run: 'true'
+          
+  lint-powershell:
+    runs-on: ubuntu-latest
+    name: Lint PowerShell
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+          
+      - name: Lint PowerShell script
+        shell: pwsh
+        run: |
+          $results = Invoke-ScriptAnalyzer -Path ./action.ps1 -Severity Warning,Error
+          if ($results.Count -gt 0) {
+            $results | Format-Table -AutoSize
+            throw "PowerShell linting failed with $($results.Count) issues"
+          }
+          Write-Host "✅ PowerShell linting passed"

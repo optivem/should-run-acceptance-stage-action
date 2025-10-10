@@ -3,7 +3,9 @@
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/optivem/should-run-acceptance-stage-action)](https://github.com/optivem/should-run-acceptance-stage-action/releases)
 [![GitHub](https://img.shields.io/github/license/optivem/should-run-acceptance-stage-action)](LICENSE)
 
-A GitHub Action that determines whether an acceptance stage should run based on the availability of new Docker images or a force run flag. This action helps optimize CI/CD pipelines by only running acceptance tests when there are actual changes to test.
+A GitHub Action that determines whether an acceptance stage should run based on the availability of new Docker images in **GitHub Container Registry (GHCR)** or a force run flag. This action helps optimize CI/CD pipelines by only running acceptance tests when there are actual changes to test.
+
+> **Note**: This action is specifically designed for GitHub Container Registry. It will not work with other container registries like Docker Hub, ECR, or ACR.
 
 ## Features
 

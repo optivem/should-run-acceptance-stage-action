@@ -1,0 +1,48 @@
+name: Basic Usage Example
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: read
+  actions: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and push Docker image
+        run: |
+          # Your build steps here
+          echo "Building Docker image..."
+          
+  check-acceptance:
+    needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.check.outputs.should-run }}
+      reason: ${{ steps.check.outputs.reason }}
+    steps:
+      - name: Check if acceptance should run
+        id: check
+        uses: optivem/should-run-acceptance-stage-action@v1
+        with:
+          repo-owner: ${{ github.repository_owner }}
+          repo-name: ${{ github.event.repository.name }}
+          image-name: 'my-app'
+          workflow-name: 'acceptance.yml'
+          
+  acceptance-tests:
+    needs: check-acceptance
+    if: needs.check-acceptance.outputs.should-run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run acceptance tests
+        run: |
+          echo "Running acceptance tests..."
+          echo "Reason: ${{ needs.check-acceptance.outputs.reason }}"
