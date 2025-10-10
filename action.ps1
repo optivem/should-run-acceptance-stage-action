@@ -9,6 +9,17 @@ param(
     [bool]$ForceRun = $false
 )
 
+# Helper function to safely write to GitHub output
+function Write-GitHubOutput {
+    param([string]$Name, [string]$Value)
+    
+    if ($env:GITHUB_OUTPUT) {
+        "$Name=$Value" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+    } else {
+        Write-Host "GitHub Output: $Name=$Value"
+    }
+}
+
 Write-Host "🔍 Checking if acceptance stage should run..."
 Write-Host "Repository: $RepoOwner/$RepoName"
 Write-Host "Acceptance Workflow: $WorkflowName"
@@ -16,18 +27,16 @@ Write-Host "Force Run: $ForceRun"
 
 # Get inspect data from environment variable
 $InspectDataResults = $env:INSPECT_DATA_RESULTS
-if ([string]::IsNullOrWhiteSpace($InspectDataResults)) {
-    Write-Host "❌ INSPECT_DATA_RESULTS environment variable is empty or not set"
-    "error-message=INSPECT_DATA_RESULTS environment variable is required" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-    exit 1
-}
-
-# If force run is enabled, always run
+    if ([string]::IsNullOrWhiteSpace($InspectDataResults)) {
+        Write-Host "❌ INSPECT_DATA_RESULTS environment variable is empty or not set"
+        Write-GitHubOutput "error-message" "INSPECT_DATA_RESULTS environment variable is required"
+        exit 1
+    }# If force run is enabled, always run
 if ($ForceRun) {
     Write-Host "🚀 Force run enabled - acceptance stage will run"
-    "should-run=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-    "reason=force-run" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-    "latest-commit=$env:GITHUB_SHA" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+    Write-GitHubOutput "should-run" "true"
+    Write-GitHubOutput "reason" "force-run"
+    Write-GitHubOutput "latest-commit" "$env:GITHUB_SHA"
     exit 0
 }
 
@@ -124,12 +133,12 @@ try {
                 Write-Host "Last checked: $LastCheckedTimestamp"
                 
                 # Set outputs for acceptance stage to run and EXIT IMMEDIATELY
-                "should-run=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-                "reason=new-image-available" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-                "latest-commit=$env:GITHUB_SHA" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-                "latest-image-id=$imageId" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-                "latest-image-created-at=$imageCreatedTimestamp" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-                "new-images-count=1" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                Write-GitHubOutput "should-run" "true"
+                Write-GitHubOutput "reason" "new-image-available"
+                Write-GitHubOutput "latest-commit" "$env:GITHUB_SHA"
+                Write-GitHubOutput "latest-image-id" $imageId
+                Write-GitHubOutput "latest-image-created-at" $imageCreatedTimestamp
+                Write-GitHubOutput "new-images-count" "1"
                 
                 exit 0
             } else {
@@ -142,8 +151,8 @@ try {
         Write-Host "❌ No new images found since last acceptance run"
         Write-Host "Processed $($inspectDataArray.Count) image(s) - all were older"
         Write-Host "Last checked: $LastCheckedTimestamp"
-        "should-run=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-        "reason=no-new-images" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        Write-GitHubOutput "should-run" "false"
+        Write-GitHubOutput "reason" "no-new-images"
         
     } catch {
         throw "Could not parse Docker inspect data array: $($_.Exception.Message)"
@@ -153,7 +162,7 @@ try {
     Write-Host "⚠️ Could not process Docker inspect data: $errorMessage"
     
     Write-Host "❌ Processing error - failing to prevent silent issues"
-    "error-message=$errorMessage" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+    Write-GitHubOutput "error-message" $errorMessage
     
     exit 1
 }
