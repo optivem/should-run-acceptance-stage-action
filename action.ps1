@@ -4,8 +4,6 @@ param(
     [Parameter(Mandatory=$true)]
     [string]$RepoName,
     [Parameter(Mandatory=$true)]
-    [string]$InspectDataResults,
-    [Parameter(Mandatory=$true)]
     [string]$WorkflowName,
     [Parameter(Mandatory=$false)]
     [bool]$ForceRun = $false
@@ -15,6 +13,14 @@ Write-Host "🔍 Checking if acceptance stage should run..."
 Write-Host "Repository: $RepoOwner/$RepoName"
 Write-Host "Acceptance Workflow: $WorkflowName"
 Write-Host "Force Run: $ForceRun"
+
+# Get inspect data from environment variable
+$InspectDataResults = $env:INSPECT_DATA_RESULTS
+if ([string]::IsNullOrWhiteSpace($InspectDataResults)) {
+    Write-Host "❌ INSPECT_DATA_RESULTS environment variable is empty or not set"
+    "error-message=INSPECT_DATA_RESULTS environment variable is required" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+    exit 1
+}
 
 # If force run is enabled, always run
 if ($ForceRun) {
