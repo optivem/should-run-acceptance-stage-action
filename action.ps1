@@ -52,11 +52,7 @@ try {
         
         Write-Host "Processing $($inspectDataArray.Count) image(s)..."
         
-        $newestImage = $null
-        $newestTimestamp = $null
-        $newImagesCount = 0
-        
-        # Compare timestamps for all images
+        # Compare timestamps for all images - exit early if any newer image found
         $lastChecked = [DateTime]::Parse($LastCheckedTimestamp)
         
         foreach ($inspectData in $inspectDataArray) {
@@ -69,7 +65,13 @@ try {
             $imageCreated = [DateTime]::Parse($imageCreatedTimestamp)
             
             # Extract image information for logging
-            $imageId = if ($inspectData.Id) { $inspectData.Id.Substring(0, 12) } else { "unknown" }
+            $imageId = if ($inspectData.Id -and $inspectData.Id.Length -gt 12) { 
+                $inspectData.Id.Substring(0, 12) 
+            } elseif ($inspectData.Id) { 
+                $inspectData.Id 
+            } else { 
+                "unknown" 
+            }
             $repoTags = if ($inspectData.RepoTags) { $inspectData.RepoTags -join ", " } else { "none" }
             
             Write-Host "Processing image: $imageId"
@@ -78,47 +80,34 @@ try {
             
             # Check if this image is newer than last acceptance run
             if ($imageCreated -gt $lastChecked) {
-                $newImagesCount++
-                Write-Host "  ✅ Newer than last acceptance run"
+                Write-Host "  ✅ Newer than last acceptance run - ACCEPTANCE SHOULD RUN!"
+                Write-Host ""
+                Write-Host "✅ Found newer image since last acceptance run!"
+                Write-Host "Image ID: $imageId"
+                Write-Host "Image created: $imageCreatedTimestamp"
+                Write-Host "Last checked: $LastCheckedTimestamp"
                 
-                # Check if this is the newest image so far
-                if ($null -eq $newestTimestamp -or $imageCreated -gt $newestTimestamp) {
-                    $newestImage = $inspectData
-                    $newestTimestamp = $imageCreated
-                    Write-Host "  🏆 This is the newest image so far"
-                }
+                # Set outputs for acceptance stage to run and EXIT IMMEDIATELY
+                "should-run=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                "reason=new-image-available" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                "latest-commit=$env:GITHUB_SHA" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                "latest-image-id=$imageId" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                "latest-image-created-at=$imageCreatedTimestamp" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                "new-images-count=1" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                
+                exit 0
             } else {
                 Write-Host "  ❌ Not newer than last acceptance run"
             }
         }
         
-        # Determine final result
-        if ($newImagesCount -gt 0 -and $null -ne $newestImage) {
-            Write-Host ""
-            Write-Host "✅ Found $newImagesCount new image(s) since last acceptance run!"
-            
-            $newestImageId = if ($newestImage.Id) { $newestImage.Id.Substring(0, 12) } else { "unknown" }
-            $newestImageCreated = $newestImage.Created
-            
-            Write-Host "Newest image ID: $newestImageId"
-            Write-Host "Newest image created: $newestImageCreated"
-            Write-Host "Last checked: $LastCheckedTimestamp"
-            
-            # Set outputs for acceptance stage to run
-            "should-run=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-            "reason=new-image-available" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-            "latest-commit=$env:GITHUB_SHA" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-            "latest-image-id=$newestImageId" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-            "latest-image-created-at=$newestImageCreated" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-            "new-images-count=$newImagesCount" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-        } else {
-            Write-Host ""
-            Write-Host "❌ No new images found since last acceptance run"
-            Write-Host "Processed $($inspectDataArray.Count) image(s)"
-            Write-Host "Last checked: $LastCheckedTimestamp"
-            "should-run=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-            "reason=no-new-images" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-        }
+        # If we get here, ALL images were older than last acceptance run
+        Write-Host ""
+        Write-Host "❌ No new images found since last acceptance run"
+        Write-Host "Processed $($inspectDataArray.Count) image(s) - all were older"
+        Write-Host "Last checked: $LastCheckedTimestamp"
+        "should-run=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "reason=no-new-images" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
         
     } catch {
         throw "Could not parse Docker inspect data array: $($_.Exception.Message)"
