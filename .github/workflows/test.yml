@@ -22,20 +22,20 @@ jobs:
       - name: Create test Docker inspect data
         id: test-data
         run: |
-          # Create a sample Docker inspect JSON with current timestamp
-          INSPECT_DATA='{
+          # Create a sample Docker inspect JSON array with current timestamp
+          INSPECT_DATA='[{
             "Id": "sha256:797cc00f91cabe4c89617485426c7aa71ca46c3c8a87328a663c2287f8dbb4b5",
             "RepoTags": ["test/image:latest"],
             "Created": "'$(date -u +"%Y-%m-%dT%H:%M:%S.%6NZ")'",
             "Config": { "Labels": null }
-          }'
+          }]'
           echo "inspect-data=$INSPECT_DATA" >> $GITHUB_OUTPUT
         
       - name: Test action with force-run enabled
         id: test-force
         uses: ./
         with:
-          latest-image-inspect-result: '${{ steps.test-data.outputs.inspect-data }}'
+          latest-image-inspect-results: '${{ steps.test-data.outputs.inspect-data }}'
           acceptance-stage-workflow-name: 'test.yml'
           force-run: 'true'
           
@@ -52,7 +52,7 @@ jobs:
         id: test-normal
         uses: ./
         with:
-          latest-image-inspect-result: '${{ steps.test-data.outputs.inspect-data }}'
+          latest-image-inspect-results: '${{ steps.test-data.outputs.inspect-data }}'
           acceptance-stage-workflow-name: 'test.yml'
           force-run: 'false'
           
@@ -79,7 +79,7 @@ jobs:
       - name: Test action on ${{ matrix.os }}
         uses: ./
         with:
-          latest-image-inspect-result: '{"Id": "sha256:test", "Created": "2025-10-10T14:34:00.820799895Z", "RepoTags": ["test:latest"]}'
+          latest-image-inspect-results: '[{"Id": "sha256:test", "Created": "2025-10-10T14:34:00.820799895Z", "RepoTags": ["test:latest"]}]'
           acceptance-stage-workflow-name: 'test.yml'
           force-run: 'true'
           

@@ -3,18 +3,19 @@
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/optivem/should-run-acceptance-stage-action)](https://github.com/optivem/should-run-acceptance-stage-action/releases)
 [![GitHub](https://img.shields.io/github/license/optivem/should-run-acceptance-stage-action)](LICENSE)
 
-A GitHub Action that determines whether an acceptance stage should run based on Docker image creation timestamps or a force run flag. This action accepts Docker inspect JSON data and compares the image creation time with the last successful workflow run, helping optimize CI/CD pipelines by only running acceptance tests when there are actual changes to test.
+A GitHub Action that determines whether an acceptance stage should run based on Docker image creation timestamps or a force run flag. This action accepts Docker inspect JSON data (single image or array of images) and compares the image creation time with the last successful workflow run, helping optimize CI/CD pipelines by only running acceptance tests when there are actual changes to test.
 
 > **Note**: This action now works with any Docker image from any registry. Simply provide the output of `docker inspect <image>` as input.
 
 ## Features
 
-- 🔍 **Smart Detection**: Compares Docker image creation timestamp with last successful acceptance run
+- 🔍 **Smart Detection**: Compares Docker image creation timestamps with last successful acceptance run
 - 🚀 **Force Run Option**: Bypass image detection and force acceptance stage to run
 - 📊 **Detailed Outputs**: Provides comprehensive information about the decision and discovered images
 - ⚡ **Performance Optimized**: Reduces unnecessary acceptance test runs
 - 🛡️ **Error Handling**: Graceful handling of edge cases and parsing failures
 - 🐳 **Registry Agnostic**: Works with any Docker registry (Docker Hub, GHCR, ECR, ACR, etc.)
+- 📦 **Multi-Image Support**: Can process single images or arrays of images
 
 ## Usage
 
@@ -54,7 +55,7 @@ jobs:
         id: check
         uses: optivem/should-run-acceptance-stage-action@v1
         with:
-          latest-image-inspect-result: '${{ needs.build.outputs.docker-inspect }}'
+          latest-image-inspect-results: '${{ needs.build.outputs.docker-inspect }}'
           # All other parameters use defaults:
           # acceptance-stage-repo-owner: (current repo owner)
           # acceptance-stage-repo-name: (current repo name)  
@@ -71,6 +72,63 @@ jobs:
           # Your acceptance test steps here...
 ```
 
+### With Multiple Images
+
+```yaml
+name: CI/CD Pipeline
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      docker-inspect: ${{ steps.inspect.outputs.result }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Your build and push steps here...
+      - name: Build and push Docker images
+        run: |
+          docker build -t myregistry/myapp:latest .
+          docker build -t myregistry/myapp:${{ github.sha }} .
+          docker push myregistry/myapp:latest
+          docker push myregistry/myapp:${{ github.sha }}
+      
+      - name: Inspect Docker images
+        id: inspect
+        run: |
+          # Combine multiple docker inspect results into JSON array
+          INSPECT_LATEST=$(docker inspect myregistry/myapp:latest)
+          INSPECT_SHA=$(docker inspect myregistry/myapp:${{ github.sha }})
+          
+          # Create JSON array by combining results
+          COMBINED_RESULTS="[$INSPECT_LATEST, $INSPECT_SHA]"
+          echo "result=$COMBINED_RESULTS" >> $GITHUB_OUTPUT
+          
+  check-acceptance:
+    needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.check.outputs.should-run }}
+    steps:
+      - name: Check if acceptance should run
+        id: check
+        uses: optivem/should-run-acceptance-stage-action@v1
+        with:
+          latest-image-inspect-results: '${{ needs.build.outputs.docker-inspect }}'
+          
+  acceptance-tests:
+    needs: check-acceptance
+    if: needs.check-acceptance.outputs.should-run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run acceptance tests
+        run: |
+          echo "Running acceptance tests..."
+          echo "Found ${{ steps.check.outputs.new-images-count }} new image(s)"
+          # Your acceptance test steps here...
+```
+
 ### With Custom Parameters
 
 ```yaml
@@ -80,7 +138,7 @@ jobs:
         with:
           acceptance-stage-repo-owner: 'your-org'
           acceptance-stage-repo-name: 'your-repo'
-          latest-image-inspect-result: '${{ needs.build.outputs.docker-inspect }}'
+          latest-image-inspect-results: '${{ needs.build.outputs.docker-inspect }}'
           acceptance-stage-workflow-name: 'acceptance-tests.yml'
           
   acceptance-tests:
@@ -101,10 +159,10 @@ jobs:
   id: check
   uses: optivem/should-run-acceptance-stage-action@v1
   with:
-    repo-owner: 'your-org'
-    repo-name: 'your-repo'
-    image-name: 'your-app'
-    workflow-name: 'acceptance-tests.yml'
+    acceptance-stage-repo-owner: 'your-org'
+    acceptance-stage-repo-name: 'your-repo'
+    latest-image-inspect-results: '${{ needs.build.outputs.docker-inspect }}'
+    acceptance-stage-workflow-name: 'acceptance-tests.yml'
     force-run: 'true'  # Force run regardless of image changes
 ```
 
@@ -125,7 +183,7 @@ jobs:
 
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
-| `latest-image-inspect-result` | Docker inspect JSON result containing image metadata | ✅ | - |
+| `latest-image-inspect-results` | Array of Docker inspect JSON results containing image metadata. Can be a single image `[{...}]` or multiple images `[{...}, {...}]` | ✅ | - |
 | `acceptance-stage-repo-owner` | Repository owner (organization or username) | ❌ | `${{ github.repository_owner }}` |
 | `acceptance-stage-repo-name` | Repository name | ❌ | `${{ github.event.repository.name }}` |
 | `acceptance-stage-workflow-name` | Name of the acceptance stage workflow file | ❌ | `acceptance-stage` |

@@ -4,7 +4,7 @@ param(
     [Parameter(Mandatory=$true)]
     [string]$RepoName,
     [Parameter(Mandatory=$true)]
-    [string]$InspectDataResult,
+    [string]$InspectDataResults,
     [Parameter(Mandatory=$true)]
     [string]$WorkflowName,
     [Parameter(Mandatory=$false)]
@@ -38,52 +38,90 @@ if ($lastWorkflowRun.Count -gt 0) {
 Write-Host "Checking for images newer than: $LastCheckedTimestamp"
 
 try {
-    # Parse the Docker inspect JSON result
-    Write-Host "Parsing Docker inspect data..."
+    # Parse the Docker inspect JSON results array
+    Write-Host "Parsing Docker inspect data array..."
     
     try {
-        $inspectData = $InspectDataResult | ConvertFrom-Json
+        # Parse as JSON array
+        $inspectDataArray = $InspectDataResults | ConvertFrom-Json
         
-        if (-not $inspectData.Created) {
-            throw "Docker inspect data does not contain 'Created' field"
+        # Ensure it's an array
+        if ($inspectDataArray -isnot [Array]) {
+            $inspectDataArray = @($inspectDataArray)
         }
         
-        $imageCreatedTimestamp = $inspectData.Created
-        Write-Host "Image created at: $imageCreatedTimestamp"
+        Write-Host "Processing $($inspectDataArray.Count) image(s)..."
         
-        # Extract image information for logging
-        $imageId = if ($inspectData.Id) { $inspectData.Id.Substring(0, 12) } else { "unknown" }
-        $repoTags = if ($inspectData.RepoTags) { $inspectData.RepoTags -join ", " } else { "none" }
+        $newestImage = $null
+        $newestTimestamp = $null
+        $newImagesCount = 0
         
-        Write-Host "Image ID: $imageId"
-        Write-Host "Repo Tags: $repoTags"
-        
-        # Compare timestamps
+        # Compare timestamps for all images
         $lastChecked = [DateTime]::Parse($LastCheckedTimestamp)
-        $imageCreated = [DateTime]::Parse($imageCreatedTimestamp)
         
-        if ($imageCreated -gt $lastChecked) {
-            Write-Host "✅ Image is newer than last acceptance run!"
-            Write-Host "Image created: $imageCreatedTimestamp"
+        foreach ($inspectData in $inspectDataArray) {
+            if (-not $inspectData.Created) {
+                Write-Warning "Docker inspect data does not contain 'Created' field, skipping image"
+                continue
+            }
+            
+            $imageCreatedTimestamp = $inspectData.Created
+            $imageCreated = [DateTime]::Parse($imageCreatedTimestamp)
+            
+            # Extract image information for logging
+            $imageId = if ($inspectData.Id) { $inspectData.Id.Substring(0, 12) } else { "unknown" }
+            $repoTags = if ($inspectData.RepoTags) { $inspectData.RepoTags -join ", " } else { "none" }
+            
+            Write-Host "Processing image: $imageId"
+            Write-Host "  Repo Tags: $repoTags"
+            Write-Host "  Created: $imageCreatedTimestamp"
+            
+            # Check if this image is newer than last acceptance run
+            if ($imageCreated -gt $lastChecked) {
+                $newImagesCount++
+                Write-Host "  ✅ Newer than last acceptance run"
+                
+                # Check if this is the newest image so far
+                if ($null -eq $newestTimestamp -or $imageCreated -gt $newestTimestamp) {
+                    $newestImage = $inspectData
+                    $newestTimestamp = $imageCreated
+                    Write-Host "  🏆 This is the newest image so far"
+                }
+            } else {
+                Write-Host "  ❌ Not newer than last acceptance run"
+            }
+        }
+        
+        # Determine final result
+        if ($newImagesCount -gt 0 -and $null -ne $newestImage) {
+            Write-Host ""
+            Write-Host "✅ Found $newImagesCount new image(s) since last acceptance run!"
+            
+            $newestImageId = if ($newestImage.Id) { $newestImage.Id.Substring(0, 12) } else { "unknown" }
+            $newestImageCreated = $newestImage.Created
+            
+            Write-Host "Newest image ID: $newestImageId"
+            Write-Host "Newest image created: $newestImageCreated"
             Write-Host "Last checked: $LastCheckedTimestamp"
             
             # Set outputs for acceptance stage to run
             "should-run=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
             "reason=new-image-available" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
             "latest-commit=$env:GITHUB_SHA" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-            "latest-image-id=$imageId" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-            "latest-image-created-at=$imageCreatedTimestamp" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-            "new-images-count=1" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            "latest-image-id=$newestImageId" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            "latest-image-created-at=$newestImageCreated" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            "new-images-count=$newImagesCount" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
         } else {
-            Write-Host "❌ Image is not newer than last acceptance run"
-            Write-Host "Image created: $imageCreatedTimestamp"
+            Write-Host ""
+            Write-Host "❌ No new images found since last acceptance run"
+            Write-Host "Processed $($inspectDataArray.Count) image(s)"
             Write-Host "Last checked: $LastCheckedTimestamp"
             "should-run=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
             "reason=no-new-images" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
         }
         
     } catch {
-        throw "Could not parse Docker inspect data: $($_.Exception.Message)"
+        throw "Could not parse Docker inspect data array: $($_.Exception.Message)"
     }
 } catch {
     $errorMessage = $_.Exception.Message

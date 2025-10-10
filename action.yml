@@ -5,8 +5,8 @@ branding:
   icon: 'check-circle'
   color: 'green'
 inputs:
-  latest-image-inspect-result:
-    description: 'Docker inspect JSON result containing image metadata'
+  latest-image-inspect-results:
+    description: 'Array of Docker inspect JSON results containing image metadata'
     required: true
   acceptance-stage-repo-owner:
     description: 'Repository owner (organization or username)'
@@ -38,7 +38,7 @@ runs:
         & "${{ github.action_path }}/action.ps1" `
           -RepoOwner "${{ inputs.acceptance-stage-repo-owner }}" `
           -RepoName "${{ inputs.acceptance-stage-repo-name }}" `
-          -InspectDataResult "${{ inputs.latest-image-inspect-result }}" `
+          -InspectDataResults "${{ inputs.latest-image-inspect-results }}" `
           -WorkflowName "${{ inputs.acceptance-stage-workflow-name }}" `
           -ForceRun ([System.Convert]::ToBoolean("${{ inputs.force-run }}"))
       env:
