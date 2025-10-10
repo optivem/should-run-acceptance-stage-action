@@ -23,12 +23,8 @@ jobs:
         id: test-data
         run: |
           # Create a sample Docker inspect JSON array with current timestamp
-          INSPECT_DATA='[{
-            "Id": "sha256:797cc00f91cabe4c89617485426c7aa71ca46c3c8a87328a663c2287f8dbb4b5",
-            "RepoTags": ["test/image:latest"],
-            "Created": "'$(date -u +"%Y-%m-%dT%H:%M:%S.%6NZ")'",
-            "Config": { "Labels": null }
-          }]'
+          CURRENT_TIME=$(date -u +"%Y-%m-%dT%H:%M:%S.%6NZ")
+          INSPECT_DATA="[{\"Id\":\"sha256:797cc00f91cabe4c89617485426c7aa71ca46c3c8a87328a663c2287f8dbb4b5\",\"RepoTags\":[\"test/image:latest\"],\"Created\":\"$CURRENT_TIME\",\"Config\":{\"Labels\":null}}]"
           echo "inspect-data=$INSPECT_DATA" >> $GITHUB_OUTPUT
         
       - name: Test action with force-run enabled
