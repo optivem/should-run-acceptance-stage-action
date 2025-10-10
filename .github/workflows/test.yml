@@ -42,13 +42,8 @@ jobs:
       - name: Verify force-run outputs
         run: |
           echo "Should run: ${{ steps.test-force.outputs.should-run }}"
-          echo "Reason: ${{ steps.test-force.outputs.reason }}"
           if [ "${{ steps.test-force.outputs.should-run }}" != "true" ]; then
             echo "❌ Force run should always return true"
-            exit 1
-          fi
-          if [ "${{ steps.test-force.outputs.reason }}" != "force-run" ]; then
-            echo "❌ Force run should have reason 'force-run'"
             exit 1
           fi
           echo "✅ Force run test passed"
@@ -64,8 +59,6 @@ jobs:
       - name: Verify normal mode outputs
         run: |
           echo "Should run: ${{ steps.test-normal.outputs.should-run }}"
-          echo "Reason: ${{ steps.test-normal.outputs.reason }}"
-          echo "Error message: ${{ steps.test-normal.outputs.error-message }}"
           # Since we're using a current timestamp, it should run (new image)
           if [ "${{ steps.test-normal.outputs.should-run }}" == "true" ]; then
             echo "✅ Normal mode test passed (new image detected)"

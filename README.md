@@ -49,7 +49,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       should-run: ${{ steps.check.outputs.should-run }}
-      reason: ${{ steps.check.outputs.reason }}
     steps:
       - name: Check if acceptance should run
         id: check
@@ -68,7 +67,7 @@ jobs:
     steps:
       - name: Run acceptance tests
         run: |
-          echo "Running acceptance tests because: ${{ needs.check-acceptance.outputs.reason }}"
+          echo "Running acceptance tests..."
           # Your acceptance test steps here...
 ```
 
@@ -137,12 +136,6 @@ jobs:
 | Output | Description |
 |--------|-------------|
 | `should-run` | Whether the acceptance stage should run (`true`/`false`) |
-| `reason` | Reason why acceptance stage should or should not run |
-| `latest-commit` | Latest commit SHA |
-| `latest-image-id` | Latest image ID if new image is available |
-| `latest-image-created-at` | Latest image creation timestamp |
-| `new-images-count` | Number of new images found |
-| `error-message` | Error message if check failed |
 
 ## How It Works
 
