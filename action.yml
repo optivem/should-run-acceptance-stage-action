@@ -8,11 +8,11 @@ inputs:
   acceptance-stage-repo-owner:
     description: 'Repository owner (organization or username)'
     required: false
-    default: ''
+    default: ${{ github.repository_owner }}
   acceptance-stage-repo-name:
     description: 'Repository name'
     required: false
-    default: ''
+    default: ${{ github.event.repository.name }}
   latest-image-inspect-result:
     description: 'Docker inspect JSON result containing image metadata'
     required: true
@@ -54,8 +54,8 @@ runs:
       shell: pwsh
       run: |
         & "${{ github.action_path }}/action.ps1" `
-          -RepoOwner "${{ inputs.acceptance-stage-repo-owner || github.repository_owner }}" `
-          -RepoName "${{ inputs.acceptance-stage-repo-name || github.event.repository.name }}" `
+          -RepoOwner "${{ inputs.acceptance-stage-repo-owner }}" `
+          -RepoName "${{ inputs.acceptance-stage-repo-name }}" `
           -InspectDataResult "${{ inputs.latest-image-inspect-result }}" `
           -WorkflowName "${{ inputs.acceptance-stage-workflow-name }}" `
           -ForceRun ([System.Convert]::ToBoolean("${{ inputs.force-run }}"))
