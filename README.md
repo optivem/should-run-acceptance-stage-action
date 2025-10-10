@@ -55,10 +55,10 @@ jobs:
         id: check
         uses: optivem/should-run-acceptance-stage-action@v1
         with:
-          repo-owner: 'your-org'
-          repo-name: 'your-repo'
+          acceptance-stage-repo-owner: 'your-org'
+          acceptance-stage-repo-name: 'your-repo'
           inspect-data-result: '${{ needs.build.outputs.docker-inspect }}'
-          workflow-name: 'acceptance-tests.yml'
+          acceptance-stage-workflow-name: 'acceptance-tests.yml'
           
   acceptance-tests:
     needs: check-acceptance
@@ -102,10 +102,10 @@ jobs:
 
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
-| `repo-owner` | Repository owner (organization or username) | ✅ | - |
-| `repo-name` | Repository name | ✅ | - |
+| `acceptance-stage-repo-owner` | Repository owner (organization or username) | ✅ | - |
+| `acceptance-stage-repo-name` | Repository name | ✅ | - |
 | `inspect-data-result` | Docker inspect JSON result containing image metadata | ✅ | - |
-| `workflow-name` | Name of the acceptance stage workflow file | ✅ | - |
+| `acceptance-stage-workflow-name` | Name of the acceptance stage workflow file | ✅ | - |
 | `force-run` | Force run even if no new images (bypasses image detection) | ❌ | `false` |
 
 ## Outputs

@@ -5,16 +5,16 @@ branding:
   icon: 'check-circle'
   color: 'green'
 inputs:
-  repo-owner:
-    description: 'Repository owner'
+  acceptance-stage-repo-owner:
+    description: 'Repository owner (organization or username)'
     required: true
-  repo-name:
+  acceptance-stage-repo-name:
     description: 'Repository name'
     required: true
   inspect-data-result:
     description: 'Docker inspect JSON result containing image metadata'
     required: true
-  workflow-name:
+  acceptance-stage-workflow-name:
     description: 'Name of the acceptance stage workflow'
     required: true
   force-run:
@@ -51,10 +51,10 @@ runs:
       shell: pwsh
       run: |
         & "${{ github.action_path }}/action.ps1" `
-          -RepoOwner "${{ inputs.repo-owner }}" `
-          -RepoName "${{ inputs.repo-name }}" `
+          -RepoOwner "${{ inputs.acceptance-stage-repo-owner }}" `
+          -RepoName "${{ inputs.acceptance-stage-repo-name }}" `
           -InspectDataResult "${{ inputs.inspect-data-result }}" `
-          -WorkflowName "${{ inputs.workflow-name }}" `
+          -WorkflowName "${{ inputs.acceptance-stage-workflow-name }}" `
           -ForceRun ([System.Convert]::ToBoolean("${{ inputs.force-run }}"))
       env:
         GITHUB_TOKEN: ${{ github.token }}

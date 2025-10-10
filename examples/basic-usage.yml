@@ -42,10 +42,10 @@ jobs:
         id: check
         uses: optivem/should-run-acceptance-stage-action@v1
         with:
-          repo-owner: ${{ github.repository_owner }}
-          repo-name: ${{ github.event.repository.name }}
+          acceptance-stage-repo-owner: ${{ github.repository_owner }}
+          acceptance-stage-repo-name: ${{ github.event.repository.name }}
           inspect-data-result: '${{ needs.build.outputs.docker-inspect }}'
-          workflow-name: 'acceptance.yml'
+          acceptance-stage-workflow-name: 'acceptance.yml'
           
   acceptance-tests:
     needs: check-acceptance

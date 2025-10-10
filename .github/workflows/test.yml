@@ -35,10 +35,10 @@ jobs:
         id: test-force
         uses: ./
         with:
-          repo-owner: ${{ github.repository_owner }}
-          repo-name: ${{ github.event.repository.name }}
+          acceptance-stage-repo-owner: ${{ github.repository_owner }}
+          acceptance-stage-repo-name: ${{ github.event.repository.name }}
           inspect-data-result: '${{ steps.test-data.outputs.inspect-data }}'
-          workflow-name: 'test.yml'
+          acceptance-stage-workflow-name: 'test.yml'
           force-run: 'true'
           
       - name: Verify force-run outputs
@@ -59,10 +59,10 @@ jobs:
         id: test-normal
         uses: ./
         with:
-          repo-owner: ${{ github.repository_owner }}
-          repo-name: ${{ github.event.repository.name }}
+          acceptance-stage-repo-owner: ${{ github.repository_owner }}
+          acceptance-stage-repo-name: ${{ github.event.repository.name }}
           inspect-data-result: '${{ steps.test-data.outputs.inspect-data }}'
-          workflow-name: 'test.yml'
+          acceptance-stage-workflow-name: 'test.yml'
           force-run: 'false'
           
       - name: Verify normal mode outputs
@@ -90,10 +90,10 @@ jobs:
       - name: Test action on ${{ matrix.os }}
         uses: ./
         with:
-          repo-owner: ${{ github.repository_owner }}
-          repo-name: ${{ github.event.repository.name }}
+          acceptance-stage-repo-owner: ${{ github.repository_owner }}
+          acceptance-stage-repo-name: ${{ github.event.repository.name }}
           inspect-data-result: '{"Id": "sha256:test", "Created": "2025-10-10T14:34:00.820799895Z", "RepoTags": ["test:latest"]}'
-          workflow-name: 'test.yml'
+          acceptance-stage-workflow-name: 'test.yml'
           force-run: 'true'
           
   lint-powershell:
