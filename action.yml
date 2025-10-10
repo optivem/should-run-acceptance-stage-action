@@ -38,7 +38,6 @@ runs:
         & "${{ github.action_path }}/action.ps1" `
           -RepoOwner "${{ inputs.acceptance-stage-repo-owner }}" `
           -RepoName "${{ inputs.acceptance-stage-repo-name }}" `
-          -InspectDataResults $env:INSPECT_DATA_RESULTS `
           -WorkflowName "${{ inputs.acceptance-stage-workflow-name }}" `
           -ForceRun ([System.Convert]::ToBoolean("${{ inputs.force-run }}"))
       env:
