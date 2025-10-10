@@ -42,12 +42,41 @@ try {
     Write-Host "Parsing Docker inspect data array..."
     
     try {
+        # Validate input format
+        if ([string]::IsNullOrWhiteSpace($InspectDataResults)) {
+            throw "InspectDataResults parameter is empty or null"
+        }
+        
+        # Check if input looks like JSON
+        $trimmedInput = $InspectDataResults.Trim()
+        if (-not ($trimmedInput.StartsWith('[') -and $trimmedInput.EndsWith(']')) -and 
+            -not ($trimmedInput.StartsWith('{') -and $trimmedInput.EndsWith('}'))) {
+            Write-Host "❌ Invalid input format detected!"
+            Write-Host "Expected: JSON array format like: [{'Id': 'sha256:...', 'Created': '2025-01-01T...', ...}]"
+            Write-Host "Received: $($InspectDataResults.Substring(0, [Math]::Min(100, $InspectDataResults.Length)))..."
+            Write-Host ""
+            Write-Host "💡 To fix this, ensure you're passing the raw JSON output from 'docker inspect' command:"
+            Write-Host "   INSPECT_RESULT=`$(docker inspect your-image:tag)"
+            Write-Host "   - For single image: Pass `$INSPECT_RESULT directly (it's already an array)"
+            Write-Host "   - For multiple images: Combine like: `"[`$IMAGE1_JSON, `$IMAGE2_JSON]`""
+            throw "Input is not in valid JSON format. Expected JSON array starting with '[' or single object starting with '{'"
+        }
+        
         # Parse as JSON array
         $inspectDataArray = $InspectDataResults | ConvertFrom-Json
         
         # Ensure it's an array
         if ($inspectDataArray -isnot [Array]) {
             $inspectDataArray = @($inspectDataArray)
+        }
+        
+        # Validate that each item has required fields
+        foreach ($item in $inspectDataArray) {
+            if (-not $item.Created) {
+                Write-Host "❌ Invalid Docker inspect data: Missing 'Created' field"
+                Write-Host "Each inspect result must have a 'Created' field with timestamp"
+                throw "Docker inspect data is missing required 'Created' field"
+            }
         }
         
         Write-Host "Processing $($inspectDataArray.Count) image(s)..."

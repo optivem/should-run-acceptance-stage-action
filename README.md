@@ -17,6 +17,38 @@ A GitHub Action that determines whether an acceptance stage should run based on 
 - 🐳 **Registry Agnostic**: Works with any Docker registry (Docker Hub, GHCR, ECR, ACR, etc.)
 - 📦 **Multi-Image Support**: Can process single images or arrays of images
 
+## Input Format Requirements
+
+This action requires Docker inspect JSON data. The `latest-image-inspect-results` input must be:
+
+- **Valid JSON**: Either a single object `{...}` or an array `[{...}, {...}]`
+- **Contains `Created` field**: Each inspect result must have a `Created` timestamp field
+- **Raw docker inspect output**: Use the direct output from `docker inspect` command
+
+### ✅ Correct Examples:
+
+```bash
+# Single image (docker inspect returns an array by default)
+INSPECT_RESULT=$(docker inspect myimage:latest)
+echo "result=$INSPECT_RESULT" >> $GITHUB_OUTPUT
+
+# Multiple images - combine the arrays
+IMAGE1=$(docker inspect myimage1:latest | jq '.[0]')  # Extract first element
+IMAGE2=$(docker inspect myimage2:latest | jq '.[0]')  # Extract first element
+COMBINED="[$IMAGE1, $IMAGE2]"
+echo "result=$COMBINED" >> $GITHUB_OUTPUT
+```
+
+### ❌ Common Mistakes:
+
+```bash
+# DON'T: Pass non-JSON format
+echo "result=Id:sha256:...,Created:2025-01-01T..." >> $GITHUB_OUTPUT
+
+# DON'T: Pass empty or null values  
+echo "result=" >> $GITHUB_OUTPUT
+```
+
 ## Usage
 
 ### Basic Usage
@@ -42,6 +74,7 @@ jobs:
       - name: Inspect Docker image
         id: inspect
         run: |
+          # docker inspect returns JSON array by default - pass it directly
           INSPECT_RESULT=$(docker inspect myregistry/myapp:latest)
           echo "result=$INSPECT_RESULT" >> $GITHUB_OUTPUT
           
