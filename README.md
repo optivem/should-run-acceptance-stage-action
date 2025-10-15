@@ -3,50 +3,51 @@
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/optivem/should-run-acceptance-stage-action)](https://github.com/optivem/should-run-acceptance-stage-action/releases)
 [![GitHub](https://img.shields.io/github/license/optivem/should-run-acceptance-stage-action)](LICENSE)
 
-A GitHub Action that determines whether an acceptance stage should run based on Docker image creation timestamps or a force run flag. This action accepts Docker inspect JSON data (single image or array of images) and compares the image creation time with the last successful workflow run, helping optimize CI/CD pipelines by only running acceptance tests when there are actual changes to test.
+A GitHub Action that determines whether an acceptance stage should run based on Docker image creation timestamps or a force run flag. This action accepts a Docker image timestamp and compares it with the last successful workflow run, helping optimize CI/CD pipelines by only running acceptance tests when there are actual changes to test.
 
-> **Note**: This action now works with any Docker image from any registry. Simply provide the output of `docker inspect <image>` as input.
+> **Note**: This action works with any Docker image from any registry. Simply provide the creation timestamp from `docker inspect <image>` output.
 
 ## Features
 
-- 🔍 **Smart Detection**: Compares Docker image creation timestamps with last successful acceptance run
+- 🔍 **Smart Detection**: Compares Docker image creation timestamp with last successful acceptance run
 - 🚀 **Force Run Option**: Bypass image detection and force acceptance stage to run
-- 📊 **Detailed Outputs**: Provides comprehensive information about the decision and discovered images
+- 📊 **Detailed Outputs**: Provides comprehensive information about the decision
 - ⚡ **Performance Optimized**: Reduces unnecessary acceptance test runs
 - 🛡️ **Error Handling**: Graceful handling of edge cases and parsing failures
 - 🐳 **Registry Agnostic**: Works with any Docker registry (Docker Hub, GHCR, ECR, ACR, etc.)
-- 📦 **Multi-Image Support**: Can process single images or arrays of images
+- � **Simple Input**: Just provide the timestamp - no complex JSON parsing required
 
 ## Input Format Requirements
 
-This action requires Docker inspect JSON data. The `latest-image-inspect-results` input must be:
+This action requires a Docker image creation timestamp in ISO 8601 format. The `latest-image-timestamp` input must be:
 
-- **Valid JSON Array**: Must be an array format `[{...}, {...}]` (single objects `{...}` are not accepted)
-- **Contains `Created` field**: Each inspect result must have a `Created` timestamp field
-- **Raw docker inspect output**: Use the direct output from `docker inspect` command (which returns arrays by default)
+- **ISO 8601 Format**: Standard timestamp format like `2025-10-15T14:30:45.123456789Z`
+- **From Docker Inspect**: Extract the `Created` field from `docker inspect` output
+- **UTC Timezone**: Preferably in UTC (Z suffix) for consistent comparison
 
 ### ✅ Correct Examples:
 
 ```bash
-# Single image (docker inspect returns an array by default)
-INSPECT_RESULT=$(docker inspect myimage:latest)
-echo "result=$INSPECT_RESULT" >> $GITHUB_OUTPUT
+# Extract timestamp from docker inspect
+TIMESTAMP=$(docker inspect myimage:latest | jq -r '.[0].Created')
+echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
 
-# Multiple images - combine the arrays
-IMAGE1=$(docker inspect myimage1:latest | jq '.[0]')  # Extract first element
-IMAGE2=$(docker inspect myimage2:latest | jq '.[0]')  # Extract first element
-COMBINED="[$IMAGE1, $IMAGE2]"
-echo "result=$COMBINED" >> $GITHUB_OUTPUT
+# Multiple images - use the latest timestamp
+IMAGE1_TIME=$(docker inspect myimage1:latest | jq -r '.[0].Created')
+IMAGE2_TIME=$(docker inspect myimage2:latest | jq -r '.[0].Created')
+# Use whichever is newer, or combine logic as needed
+LATEST_TIME=$(echo -e "$IMAGE1_TIME\n$IMAGE2_TIME" | sort -r | head -1)
+echo "timestamp=$LATEST_TIME" >> $GITHUB_OUTPUT
 ```
 
 ### ❌ Common Mistakes:
 
 ```bash
-# DON'T: Pass non-JSON format
-echo "result=Id:sha256:...,Created:2025-01-01T..." >> $GITHUB_OUTPUT
+# DON'T: Pass full JSON object
+echo "timestamp={\"Created\": \"2025-01-01T...\", \"Id\": \"...\"}" >> $GITHUB_OUTPUT
 
-# DON'T: Pass single object format
-echo "result={\"Id\": \"sha256:...\", \"Created\": \"...\"}" >> $GITHUB_OUTPUT
+# DON'T: Pass non-timestamp format
+echo "timestamp=2025-01-01 14:30:45" >> $GITHUB_OUTPUT
 
 # DON'T: Pass empty or null values  
 echo "result=" >> $GITHUB_OUTPUT
@@ -74,12 +75,12 @@ jobs:
           docker build -t myregistry/myapp:latest .
           docker push myregistry/myapp:latest
       
-      - name: Inspect Docker image
+      - name: Get Docker image timestamp
         id: inspect
         run: |
-          # docker inspect returns JSON array by default - pass it directly
-          INSPECT_RESULT=$(docker inspect myregistry/myapp:latest)
-          echo "result=$INSPECT_RESULT" >> $GITHUB_OUTPUT
+          # Extract timestamp from docker inspect
+          TIMESTAMP=$(docker inspect myregistry/myapp:latest | jq -r '.[0].Created')
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
           
   check-acceptance:
     needs: build
@@ -91,7 +92,7 @@ jobs:
         id: check
         uses: optivem/should-run-acceptance-stage-action@v1
         with:
-          latest-image-inspect-results: '${{ needs.build.outputs.docker-inspect }}'
+          latest-image-timestamp: '${{ needs.build.outputs.image-timestamp }}'
           # All other parameters use defaults:
           # acceptance-stage-repo-owner: (current repo owner)
           # acceptance-stage-repo-name: (current repo name)  
@@ -130,16 +131,19 @@ jobs:
           docker push myregistry/myapp:latest
           docker push myregistry/myapp:${{ github.sha }}
       
-      - name: Inspect Docker images
+      - name: Get latest Docker image timestamp
         id: inspect
         run: |
-          # Combine multiple docker inspect results into JSON array
-          INSPECT_LATEST=$(docker inspect myregistry/myapp:latest)
-          INSPECT_SHA=$(docker inspect myregistry/myapp:${{ github.sha }})
+          # Get timestamps from multiple images and find the latest
+          LATEST_TIME=$(docker inspect myregistry/myapp:latest | jq -r '.[0].Created')
+          SHA_TIME=$(docker inspect myregistry/myapp:${{ github.sha }} | jq -r '.[0].Created')
           
-          # Create JSON array by combining results
-          COMBINED_RESULTS="[$INSPECT_LATEST, $INSPECT_SHA]"
-          echo "result=$COMBINED_RESULTS" >> $GITHUB_OUTPUT
+          # Use the newer timestamp
+          if [[ "$LATEST_TIME" > "$SHA_TIME" ]]; then
+            echo "timestamp=$LATEST_TIME" >> $GITHUB_OUTPUT
+          else
+            echo "timestamp=$SHA_TIME" >> $GITHUB_OUTPUT
+          fi
           
   check-acceptance:
     needs: build
@@ -151,7 +155,7 @@ jobs:
         id: check
         uses: optivem/should-run-acceptance-stage-action@v1
         with:
-          latest-image-inspect-results: '${{ needs.build.outputs.docker-inspect }}'
+          latest-image-timestamp: '${{ needs.build.outputs.image-timestamp }}'
           
   acceptance-tests:
     needs: check-acceptance
@@ -174,7 +178,7 @@ jobs:
         with:
           acceptance-stage-repo-owner: 'your-org'
           acceptance-stage-repo-name: 'your-repo'
-          latest-image-inspect-results: '${{ needs.build.outputs.docker-inspect }}'
+          latest-image-timestamp: '${{ needs.build.outputs.image-timestamp }}'
           acceptance-stage-workflow-name: 'acceptance-tests.yml'
           
   acceptance-tests:
@@ -197,7 +201,7 @@ jobs:
   with:
     acceptance-stage-repo-owner: 'your-org'
     acceptance-stage-repo-name: 'your-repo'
-    latest-image-inspect-results: '${{ needs.build.outputs.docker-inspect }}'
+    latest-image-timestamp: '${{ needs.build.outputs.image-timestamp }}'
     acceptance-stage-workflow-name: 'acceptance-tests.yml'
     force-run: 'true'  # Force run regardless of image changes
 ```
@@ -219,7 +223,7 @@ jobs:
 
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
-| `latest-image-inspect-results` | Array of Docker inspect JSON results containing image metadata. Can be a single image `[{...}]` or multiple images `[{...}, {...}]` | ✅ | - |
+| `latest-image-timestamp` | Timestamp of the latest Docker image creation (ISO 8601 format) | ✅ | - |
 | `acceptance-stage-repo-owner` | Repository owner (organization or username) | ❌ | `${{ github.repository_owner }}` |
 | `acceptance-stage-repo-name` | Repository name | ❌ | `${{ github.event.repository.name }}` |
 | `acceptance-stage-workflow-name` | Name of the acceptance stage workflow file | ❌ | `acceptance-stage` |
@@ -234,7 +238,7 @@ jobs:
 ## How It Works
 
 1. **Last Run Detection**: Queries the GitHub API to find the timestamp of the last successful acceptance workflow run
-2. **Image Analysis**: Parses the provided Docker inspect JSON data to extract the image creation timestamp
+2. **Timestamp Comparison**: Compares the provided Docker image creation timestamp with the last successful run
 3. **Decision Logic**: 
    - If `force-run` is `true`: Always runs acceptance stage
    - If image creation time is newer than last successful run: Runs acceptance stage
@@ -256,9 +260,9 @@ Simply provide the output of `docker inspect <image>` regardless of where the im
 ## Requirements
 
 - **GitHub Token**: The action requires `GITHUB_TOKEN` to access GitHub APIs (automatically provided)
-- **Docker Inspect Data**: Provide JSON output from `docker inspect <image>` command
+- **Image Timestamp**: Provide ISO 8601 timestamp from `docker inspect <image>` output
 - **GitHub CLI**: Uses `gh` command (pre-installed on GitHub runners)
-- **Permissions**: Requires `packages: read` permission to access container registry
+- **Permissions**: Requires `actions: read` permission to access workflow history
 
 ### Required Permissions
 

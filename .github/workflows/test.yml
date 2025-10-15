@@ -19,19 +19,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         
-      - name: Create test Docker inspect data
+      - name: Create test timestamp
         id: test-data
         run: |
-          # Create a sample Docker inspect JSON array with current timestamp
+          # Create current timestamp for testing
           CURRENT_TIME=$(date -u +"%Y-%m-%dT%H:%M:%S.%6NZ")
-          INSPECT_DATA="[{\"Id\":\"sha256:797cc00f91cabe4c89617485426c7aa71ca46c3c8a87328a663c2287f8dbb4b5\",\"RepoTags\":[\"test/image:latest\"],\"Created\":\"$CURRENT_TIME\",\"Config\":{\"Labels\":null}}]"
-          echo "inspect-data=$INSPECT_DATA" >> $GITHUB_OUTPUT
+          echo "timestamp=$CURRENT_TIME" >> $GITHUB_OUTPUT
         
       - name: Test action with force-run enabled
         id: test-force
         uses: ./
         with:
-          latest-image-inspect-results: '${{ steps.test-data.outputs.inspect-data }}'
+          latest-image-timestamp: '${{ steps.test-data.outputs.timestamp }}'
           acceptance-stage-workflow-name: 'test.yml'
           force-run: 'true'
           
@@ -48,7 +47,7 @@ jobs:
         id: test-normal
         uses: ./
         with:
-          latest-image-inspect-results: '${{ steps.test-data.outputs.inspect-data }}'
+          latest-image-timestamp: '${{ steps.test-data.outputs.timestamp }}'
           acceptance-stage-workflow-name: 'test.yml'
           force-run: 'false'
           
@@ -75,6 +74,6 @@ jobs:
       - name: Test action on ${{ matrix.os }}
         uses: ./
         with:
-          latest-image-inspect-results: '[{"Id": "sha256:test", "Created": "2025-10-10T14:34:00.820799895Z", "RepoTags": ["test:latest"]}]'
+          latest-image-timestamp: '2025-10-10T14:34:00.820799895Z'
           acceptance-stage-workflow-name: 'test.yml'
           force-run: 'true'

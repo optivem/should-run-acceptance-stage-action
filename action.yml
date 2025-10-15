@@ -5,8 +5,8 @@ branding:
   icon: 'check-circle'
   color: 'green'
 inputs:
-  latest-image-inspect-results:
-    description: 'Array of Docker inspect JSON results containing image metadata'
+  latest-image-timestamp:
+    description: 'Timestamp of the latest Docker image creation (ISO 8601 format)'
     required: true
   acceptance-stage-repo-owner:
     description: 'Repository owner (organization or username)'
@@ -43,4 +43,4 @@ runs:
       env:
         GITHUB_TOKEN: ${{ github.token }}
         GITHUB_SHA: ${{ github.sha }}
-        INSPECT_DATA_RESULTS: ${{ inputs.latest-image-inspect-results }}
+        LATEST_IMAGE_TIMESTAMP: ${{ inputs.latest-image-timestamp }}
