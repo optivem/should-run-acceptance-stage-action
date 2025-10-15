@@ -65,7 +65,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
-      docker-inspect: ${{ steps.inspect.outputs.result }}
+      image-timestamp: ${{ steps.inspect.outputs.timestamp }}
     steps:
       - uses: actions/checkout@v4
       
@@ -119,7 +119,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
-      docker-inspect: ${{ steps.inspect.outputs.result }}
+      image-timestamp: ${{ steps.inspect.outputs.timestamp }}
     steps:
       - uses: actions/checkout@v4
       
@@ -165,7 +165,7 @@ jobs:
       - name: Run acceptance tests
         run: |
           echo "Running acceptance tests..."
-          echo "Found ${{ steps.check.outputs.new-images-count }} new image(s)"
+          echo "Reason: ${{ needs.check-acceptance.outputs.reason }}"
           # Your acceptance test steps here...
 ```
 
@@ -308,7 +308,6 @@ jobs:
     outputs:
       should-run: ${{ steps.check.outputs.should-run }}
       reason: ${{ steps.check.outputs.reason }}
-      new-images-count: ${{ steps.check.outputs.new-images-count }}
     steps:
       - name: Check if acceptance tests should run
         id: check
@@ -323,7 +322,7 @@ jobs:
         run: |
           echo "Should run acceptance: ${{ steps.check.outputs.should-run }}"
           echo "Reason: ${{ steps.check.outputs.reason }}"
-          echo "New images found: ${{ steps.check.outputs.new-images-count }}"
+          echo "Latest image created: ${{ steps.check.outputs.latest-image-created-at }}"
           
   acceptance-tests:
     needs: check-acceptance-needed
@@ -341,32 +340,32 @@ jobs:
 
 ### Common Issues
 
-1. **"A positional parameter cannot be found" Error**
-   - **Cause**: Input data is not in valid JSON format
-   - **Solution**: Ensure you're passing the raw JSON output from `docker inspect`:
+1. **"Could not parse timestamps" Error**
+   - **Cause**: Invalid timestamp format provided to `latest-image-timestamp`
+   - **Solution**: Ensure you're passing a valid ISO 8601 timestamp from `docker inspect`:
    ```bash
-   # ✅ Correct: Pass docker inspect JSON directly
-   INSPECT_RESULT=$(docker inspect your-image:tag)
-   echo "result=$INSPECT_RESULT" >> $GITHUB_OUTPUT
+   # ✅ Correct: Extract timestamp from docker inspect
+   TIMESTAMP=$(docker inspect your-image:tag | jq -r '.[0].Created')
+   echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
    
-   # ❌ Wrong: Don't pass formatted strings
-   echo "result=Id:sha256:...,Created:..." >> $GITHUB_OUTPUT
+   # ❌ Wrong: Don't pass formatted strings or non-timestamp data
+   echo "timestamp=2025-01-01 14:30:45" >> $GITHUB_OUTPUT
    ```
 
-2. **"Could not parse Docker inspect data" Error**
-   - **Cause**: Missing required fields (like `Created`) or malformed JSON
-   - **Solution**: Verify your Docker inspect output contains all required fields:
+2. **"LATEST_IMAGE_TIMESTAMP environment variable is empty" Error**
+   - **Cause**: Missing or empty `latest-image-timestamp` input
+   - **Solution**: Verify your workflow passes the timestamp:
    ```bash
-   docker inspect your-image:tag | jq '.[0] | {Id, Created, RepoTags}'
+   docker inspect your-image:tag | jq -r '.[0].Created'
    ```
 
-3. **Package Not Found (404)**
-   - The action will default to running acceptance stage for safety
-   - Ensure the package name format is correct: `repo-name/image-name`
+3. **No Previous Workflow Runs Found**
+   - The action will use a fallback timestamp (24 hours ago) for safety
+   - This ensures the first run after setup will trigger acceptance tests
 
-4. **Permission Denied**
-   - Verify `packages: read` permission is granted
-   - Check if the repository has container packages published
+4. **Permission Denied on GitHub API**
+   - Verify `actions: read` permission is granted in workflow
+   - The action will use fallback logic if GitHub API is unavailable
 
 5. **API Rate Limiting**
    - The action uses authenticated requests which have higher rate limits
