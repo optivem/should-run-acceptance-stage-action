@@ -1,5 +1,8 @@
 # Should Run Acceptance Stage Action
 
+[![Test Action](https://github.com/optivem/should-run-acceptance-stage-action/actions/workflows/test.yml/badge.svg)](https://github.com/optivem/should-run-acceptance-stage-action/actions/workflows/test.yml)
+[![Release](https://github.com/optivem/should-run-acceptance-stage-action/actions/workflows/release.yml/badge.svg)](https://github.com/optivem/should-run-acceptance-stage-action/actions/workflows/release.yml)
+
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/optivem/should-run-acceptance-stage-action)](https://github.com/optivem/should-run-acceptance-stage-action/releases)
 [![GitHub](https://img.shields.io/github/license/optivem/should-run-acceptance-stage-action)](LICENSE)
 
