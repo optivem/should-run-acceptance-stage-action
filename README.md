@@ -4,7 +4,6 @@
 [![Release](https://github.com/optivem/should-run-acceptance-stage-action/actions/workflows/release.yml/badge.svg)](https://github.com/optivem/should-run-acceptance-stage-action/actions/workflows/release.yml)
 
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/optivem/should-run-acceptance-stage-action)](https://github.com/optivem/should-run-acceptance-stage-action/releases)
-
 [![GitHub](https://img.shields.io/github/license/optivem/should-run-acceptance-stage-action)](LICENSE)
 
 A GitHub Action that determines whether an acceptance stage should run based on Docker image creation timestamps or a force run flag. This action accepts a Docker image timestamp and compares it with the last successful workflow run, helping optimize CI/CD pipelines by only running acceptance tests when there are actual changes to test.
