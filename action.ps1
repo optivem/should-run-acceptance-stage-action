@@ -6,7 +6,7 @@ param(
     [Parameter(Mandatory=$true)]
     [string]$WorkflowName,
     [Parameter(Mandatory=$false)]
-    [bool]$ForceRun = $false
+    [bool]$ForceRun = $true
 )
 
 # Helper function to safely write to GitHub output
