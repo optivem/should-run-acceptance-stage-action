@@ -6,7 +6,7 @@ param(
     [Parameter(Mandatory=$true)]
     [string]$WorkflowName,
     [Parameter(Mandatory=$false)]
-    [bool]$ForceRun = $true
+    [bool]$ForceRun = $false
 )
 
 # Helper function to safely write to GitHub output
@@ -64,24 +64,30 @@ try {
     Write-Host "Last checked: $($lastChecked.ToString('yyyy-MM-ddTHH:mm:ssZ'))"
     
     # Check if image is newer than last acceptance run
-    if ($imageCreated -gt $lastChecked) {
-        Write-Host "✅ Image is newer than last acceptance run - ACCEPTANCE SHOULD RUN!"
+    # if ($imageCreated -gt $lastChecked) {
+    #     Write-Host "✅ Image is newer than last acceptance run - ACCEPTANCE SHOULD RUN!"
         
-        Write-GitHubOutput "should-run" "true"
-        Write-GitHubOutput "reason" "new-image-available"
-        Write-GitHubOutput "latest-commit" "$env:GITHUB_SHA"
-        Write-GitHubOutput "latest-image-created-at" $LatestImageTimestamp
+    #     Write-GitHubOutput "should-run" "true"
+    #     Write-GitHubOutput "reason" "new-image-available"
+    #     Write-GitHubOutput "latest-commit" "$env:GITHUB_SHA"
+    #     Write-GitHubOutput "latest-image-created-at" $LatestImageTimestamp
         
-        exit 0
-    } else {
-        Write-Host "❌ Image is not newer than last acceptance run"
-        Write-Host "No acceptance stage run needed"
+    #     exit 0
+    # } else {
+    #     Write-Host "❌ Image is not newer than last acceptance run"
+    #     Write-Host "No acceptance stage run needed"
         
-        Write-GitHubOutput "should-run" "false"
-        Write-GitHubOutput "reason" "no-new-image"
+    #     Write-GitHubOutput "should-run" "false"
+    #     Write-GitHubOutput "reason" "no-new-image"
         
-        exit 0
-    }
+    #     exit 0
+    # }
+
+    Write-GitHubOutput "should-run" "true"
+    Write-GitHubOutput "reason" "should-always-run"
+    Write-GitHubOutput "latest-commit" "$env:GITHUB_SHA"
+    Write-GitHubOutput "latest-image-created-at" $LatestImageTimestamp
+
 } catch {
     $errorMessage = $_.Exception.Message
     Write-Host "⚠️ Could not parse timestamps: $errorMessage"
