@@ -20,6 +20,14 @@ inputs:
     description: 'Name of the acceptance stage workflow'
     required: false
     default: 'acceptance-stage'
+  acceptance-test-repo-owner:
+    description: 'Owner of the acceptance test repository (organization or username)'
+    required: false
+    default: ''
+  acceptance-test-repo-name:
+    description: 'Name of the acceptance test repository'
+    required: false
+    default: ''
   force-run:
     description: 'Force run even if no new images (bypasses image detection)'
     required: false
@@ -39,6 +47,8 @@ runs:
           -RepoOwner "${{ inputs.acceptance-stage-repo-owner }}" `
           -RepoName "${{ inputs.acceptance-stage-repo-name }}" `
           -WorkflowName "${{ inputs.acceptance-stage-workflow-name }}" `
+          -AcceptanceTestRepoOwner "${{ inputs.acceptance-test-repo-owner }}" `
+          -AcceptanceTestRepoName "${{ inputs.acceptance-test-repo-name }}" `
           -ForceRun ([System.Convert]::ToBoolean("${{ inputs.force-run }}"))
       env:
         GITHUB_TOKEN: ${{ github.token }}
