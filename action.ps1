@@ -63,25 +63,25 @@ try {
     Write-Host "Image created: $($imageCreated.ToString('yyyy-MM-ddTHH:mm:ssZ'))"
     Write-Host "Last checked: $($lastChecked.ToString('yyyy-MM-ddTHH:mm:ssZ'))"
     
-    # Check if image is newer than last acceptance run
-    # if ($imageCreated -gt $lastChecked) {
-    #     Write-Host "✅ Image is newer than last acceptance run - ACCEPTANCE SHOULD RUN!"
+    Check if image is newer than last acceptance run
+    if ($imageCreated -gt $lastChecked) {
+        Write-Host "✅ Image is newer than last acceptance run - ACCEPTANCE SHOULD RUN!"
         
-    #     Write-GitHubOutput "should-run" "true"
-    #     Write-GitHubOutput "reason" "new-image-available"
-    #     Write-GitHubOutput "latest-commit" "$env:GITHUB_SHA"
-    #     Write-GitHubOutput "latest-image-created-at" $LatestImageTimestamp
+        Write-GitHubOutput "should-run" "true"
+        Write-GitHubOutput "reason" "new-image-available"
+        Write-GitHubOutput "latest-commit" "$env:GITHUB_SHA"
+        Write-GitHubOutput "latest-image-created-at" $LatestImageTimestamp
         
-    #     exit 0
-    # } else {
-    #     Write-Host "❌ Image is not newer than last acceptance run"
-    #     Write-Host "No acceptance stage run needed"
+        exit 0
+    } else {
+        Write-Host "❌ Image is not newer than last acceptance run"
+        Write-Host "No acceptance stage run needed"
         
-    #     Write-GitHubOutput "should-run" "false"
-    #     Write-GitHubOutput "reason" "no-new-image"
+        Write-GitHubOutput "should-run" "false"
+        Write-GitHubOutput "reason" "no-new-image"
         
-    #     exit 0
-    # }
+        exit 0
+    }
 
     Write-GitHubOutput "should-run" "true"
     Write-GitHubOutput "reason" "should-always-run"
