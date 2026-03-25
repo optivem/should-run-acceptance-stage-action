@@ -63,7 +63,7 @@ try {
     Write-Host "Image created: $($imageCreated.ToString('yyyy-MM-ddTHH:mm:ssZ'))"
     Write-Host "Last checked: $($lastChecked.ToString('yyyy-MM-ddTHH:mm:ssZ'))"
     
-    Check if image is newer than last acceptance run
+    # Check if image is newer than last acceptance run
     if ($imageCreated -gt $lastChecked) {
         Write-Host "✅ Image is newer than last acceptance run - ACCEPTANCE SHOULD RUN!"
         
