@@ -6,10 +6,6 @@ param(
     [Parameter(Mandatory=$true)]
     [string]$WorkflowName,
     [Parameter(Mandatory=$false)]
-    [string]$AcceptanceTestRepoOwner = '',
-    [Parameter(Mandatory=$false)]
-    [string]$AcceptanceTestRepoName = '',
-    [Parameter(Mandatory=$false)]
     [bool]$ForceRun = $false
 )
 
@@ -28,11 +24,6 @@ Write-Host "🔍 Checking if acceptance stage should run..."
 Write-Host "Repository: $RepoOwner/$RepoName"
 Write-Host "Acceptance Workflow: $WorkflowName"
 Write-Host "Force Run: $ForceRun"
-
-$hasTestRepo = (-not [string]::IsNullOrWhiteSpace($AcceptanceTestRepoOwner)) -and (-not [string]::IsNullOrWhiteSpace($AcceptanceTestRepoName))
-if ($hasTestRepo) {
-    Write-Host "Acceptance Test Repository: $AcceptanceTestRepoOwner/$AcceptanceTestRepoName"
-}
 
 # Get latest image timestamp from environment variable
 $LatestImageTimestamp = $env:LATEST_IMAGE_TIMESTAMP
@@ -85,11 +76,11 @@ try {
     }
 
     # Check if acceptance test repo has newer commits
-    if ($hasTestRepo -and -not $shouldRun) {
-        Write-Host "🔍 Checking for new commits in acceptance test repo: $AcceptanceTestRepoOwner/$AcceptanceTestRepoName"
+    if (-not $shouldRun) {
+        Write-Host "🔍 Checking for new commits in repo: $RepoOwner/$RepoName"
 
         $sinceTimestamp = $lastChecked.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-        $commits = gh api "repos/$AcceptanceTestRepoOwner/$AcceptanceTestRepoName/commits?since=$sinceTimestamp&per_page=1" 2>&1
+        $commits = gh api "repos/$RepoOwner/$RepoName/commits?since=$sinceTimestamp&per_page=1" 2>&1
 
         if ($LASTEXITCODE -eq 0) {
             $commitList = $commits | ConvertFrom-Json
