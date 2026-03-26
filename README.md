@@ -1,3 +1,6 @@
+> [!WARNING]
+> This action has moved to [optivem/actions](https://github.com/optivem/actions). Use `optivem/actions/should-run-acceptance-stage@v1` instead.
+
 # Should Run Acceptance Stage Action
 
 [![Test Action](https://github.com/optivem/should-run-acceptance-stage-action/actions/workflows/test.yml/badge.svg)](https://github.com/optivem/should-run-acceptance-stage-action/actions/workflows/test.yml)
@@ -39,7 +42,8 @@ echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
 IMAGE1_TIME=$(docker inspect myimage1:latest | jq -r '.[0].Created')
 IMAGE2_TIME=$(docker inspect myimage2:latest | jq -r '.[0].Created')
 # Use whichever is newer, or combine logic as needed
-LATEST_TIME=$(echo -e "$IMAGE1_TIME\n$IMAGE2_TIME" | sort -r | head -1)
+LATEST_TIME=$(echo -e "$IMAGE1_TIME
+$IMAGE2_TIME" | sort -r | head -1)
 echo "timestamp=$LATEST_TIME" >> $GITHUB_OUTPUT
 ```
 
@@ -47,7 +51,7 @@ echo "timestamp=$LATEST_TIME" >> $GITHUB_OUTPUT
 
 ```bash
 # DON'T: Pass full JSON object
-echo "timestamp={\"Created\": \"2025-01-01T...\", \"Id\": \"...\"}" >> $GITHUB_OUTPUT
+echo "timestamp={"Created": "2025-01-01T...", "Id": "..."}" >> $GITHUB_OUTPUT
 
 # DON'T: Pass non-timestamp format
 echo "timestamp=2025-01-01 14:30:45" >> $GITHUB_OUTPUT
